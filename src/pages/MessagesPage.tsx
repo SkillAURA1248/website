@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Search, Loader2 } from 'lucide-react'
 import Layout from '../components/Layout'
@@ -34,26 +34,48 @@ export default function MessagesPage() {
   const [loadingMsgs,   setLoadingMsgs]   = useState(false)
   const [sending,       setSending]       = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const activeThreadRef = useRef<Thread | null>(null)
 
-  // Load threads
-  useEffect(() => {
-    getThreads().then(t => {
-      setThreads(t)
-      if (t.length > 0 && !activeThread) selectThread(t[0], false)
-      setLoadingThreads(false)
-    })
+  // Keep ref in sync so intervals always see latest activeThread
+  useEffect(() => { activeThreadRef.current = activeThread }, [activeThread])
+
+  // Poll thread list every 10 seconds
+  const fetchThreads = useCallback(async () => {
+    const t = await getThreads()
+    setThreads(t)
+    setLoadingThreads(false)
+    // Auto-select first thread on first load
+    if (t.length > 0 && !activeThreadRef.current) {
+      selectThread(t[0], false)
+    }
   }, [])
 
-  // Scroll to bottom
+  useEffect(() => {
+    fetchThreads()
+    const interval = setInterval(fetchThreads, 10000)
+    return () => clearInterval(interval)
+  }, [fetchThreads])
+
+  // Poll active thread messages every 3 seconds
+  const fetchMessages = useCallback(async (threadId: string) => {
+    const m = await getMessages(threadId)
+    setMessages(m)
+  }, [])
+
+  useEffect(() => {
+    if (!activeThread) return
+    setLoadingMsgs(true)
+    fetchMessages(activeThread.id).then(() => setLoadingMsgs(false))
+    const interval = setInterval(() => fetchMessages(activeThread.id), 3000)
+    return () => clearInterval(interval)
+  }, [activeThread?.id])
+
+  // Scroll to bottom when messages change
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  const selectThread = (thread: Thread, fromUser = true) => {
+  const selectThread = (thread: Thread, _fromUser = true) => {
     setActiveThread(thread)
-    setLoadingMsgs(true)
-    getMessages(thread.id).then(m => {
-      setMessages(m)
-      setLoadingMsgs(false)
-    })
+    setMessages([]) // clear so loading spinner shows
   }
 
   const handleSend = async () => {
