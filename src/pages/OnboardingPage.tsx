@@ -1053,7 +1053,7 @@ export default function OnboardingPage() {
                 Back
               </button>
 
-              {/* Continue */}
+              {/* Continue / Finish */}
               <motion.button
                 whileHover={
                   (step === 1 ? canContinueStep1 : step === 2 ? canContinueStep2 : true)
@@ -1062,10 +1062,17 @@ export default function OnboardingPage() {
                 }
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-                onClick={() => advance(step + 1)}
+                onClick={() => {
+                  if (step === TOTAL_STEPS) {
+                    handleEnter()
+                  } else {
+                    advance(step + 1)
+                  }
+                }}
                 disabled={
                   (step === 1 && !canContinueStep1) ||
-                  (step === 2 && !canContinueStep2)
+                  (step === 2 && !canContinueStep2) ||
+                  saving
                 }
                 className="flex items-center gap-2 h-11 px-7 rounded-xl text-sm font-bold
                            transition-all duration-200
@@ -1076,8 +1083,16 @@ export default function OnboardingPage() {
                   boxShadow:  '0 0 18px rgba(251,191,36,0.26)',
                 }}
               >
-                {step === TOTAL_STEPS ? 'See My Skill DNA' : 'Continue'}
-                <ArrowRightIcon />
+                {saving ? (
+                  <>
+                    <span className="w-4 h-4 rounded-full border-2 border-[#07090D]/30 border-t-[#07090D] animate-spin" />
+                    Saving…
+                  </>
+                ) : step === TOTAL_STEPS ? (
+                  <>Enter SkillSwap <ArrowRightIcon /></>
+                ) : (
+                  <>Continue <ArrowRightIcon /></>
+                )}
               </motion.button>
             </motion.div>
           )}
