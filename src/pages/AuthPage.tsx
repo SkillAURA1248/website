@@ -3,7 +3,17 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { Button } from '../components/ui/Button'
-import { supabase, isSupabaseReady } from '../lib/supabase'
+import { supabase as _supabase, isSupabaseReady } from '../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// Always try to create a client — works even if module loaded before env vars resolved
+function getClient() {
+  if (_supabase) return _supabase
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+  if (url && key) return createClient(url, key)
+  return null
+}
 
 export default function AuthPage() {
   const [tab,       setTab]      = useState<'signin' | 'signup'>('signin')
@@ -27,55 +37,56 @@ export default function AuthPage() {
     if (!email || !password) { setError('Please fill in all fields.'); setLoading(false); return }
     if (password.length < 6)  { setError('Password must be at least 6 characters.'); setLoading(false); return }
 
-    if (isSupabaseReady && supabase) {
-      try {
-        if (tab === 'signup') {
-          const { data, error: authErr } = await supabase.auth.signUp({
-            email, password,
-            options: { data: { display_name: name, username: username.toLowerCase().replace(/\s+/g, '_') } },
-          })
-          if (authErr) throw authErr
+    const sb = getClient()
 
-          // Try to create profile row — non-fatal if table not set up yet
-          if (data.user) {
-            try {
-              await supabase.from('profiles').insert({
-                auth_user_id:       data.user.id,
-                display_name:       name,
-                username:           username.toLowerCase().replace(/\s+/g, '_'),
-                status:             'online',
-                gradient_index:     Math.floor(Math.random() * 5),
-                sessions_completed: 0,
-                rating:             0,
-                review_count:       0,
-                is_verified:        false,
-              })
-            } catch {
-              // Profile insert failed (table may not exist yet) — auth still succeeded
-              console.warn('Profile insert failed — run supabase/schema.sql first')
-            }
+    if (!sb) {
+      setError('Supabase credentials missing. Contact support.')
+      setLoading(false)
+      return
+    }
+
+    try {
+      if (tab === 'signup') {
+        const { data, error: authErr } = await sb.auth.signUp({
+          email, password,
+          options: { data: { display_name: name, username: username.toLowerCase().replace(/\s+/g, '_') } },
+        })
+        if (authErr) throw authErr
+
+        if (data.user) {
+          try {
+            await sb.from('profiles').insert({
+              auth_user_id:       data.user.id,
+              display_name:       name,
+              username:           username.toLowerCase().replace(/\s+/g, '_'),
+              status:             'online',
+              gradient_index:     Math.floor(Math.random() * 5),
+              sessions_completed: 0,
+              rating:             0,
+              review_count:       0,
+              is_verified:        false,
+            })
+          } catch {
+            console.warn('Profile insert failed — run supabase/schema.sql first')
           }
-          navigate('/onboarding')
-        } else {
-          const { error: authErr } = await supabase.auth.signInWithPassword({ email, password })
-          if (authErr) throw authErr
-          navigate(from)
         }
-      } catch (err: any) {
-        const msg: string = err?.message ?? String(err)
-        if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
-          setError('Cannot reach the server. Try again or check your connection.')
-        } else if (msg.toLowerCase().includes('invalid login')) {
-          setError('Incorrect email or password.')
-        } else if (msg.toLowerCase().includes('already registered')) {
-          setError('An account with this email already exists. Try signing in.')
-        } else {
-          setError(msg)
-        }
+        navigate('/onboarding')
+      } else {
+        const { error: authErr } = await sb.auth.signInWithPassword({ email, password })
+        if (authErr) throw authErr
+        navigate(from)
       }
-    } else {
-      // No Supabase — should not happen in production
-      setError('Supabase is not configured. Add credentials to .env.local')
+    } catch (err: any) {
+      const msg: string = err?.message ?? String(err)
+      if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
+        setError('Cannot reach the server. Try again or check your connection.')
+      } else if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
+        setError('Incorrect email or password.')
+      } else if (msg.toLowerCase().includes('already registered')) {
+        setError('An account with this email already exists. Try signing in.')
+      } else {
+        setError(msg)
+      }
     }
     setLoading(false)
   }
