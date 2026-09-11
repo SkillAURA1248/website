@@ -1,15 +1,25 @@
 /**
  * SkillSwap — Auth (no Supabase Auth)
- * Users are stored in public.users table.
- * Session is a plain user ID in localStorage.
+ * Users stored in public.users table.
+ * Session = localStorage 'skillswap_user_id'.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { supabase } from './supabase'
+import { createClient } from '@supabase/supabase-js'
+import { supabase as _supabase } from './supabase'
 import type { UserProfile, UserSkill } from './types'
 
 const SESSION_KEY = 'skillswap_user_id'
 
-/* ── transform DB row → UserProfile ──────────────────────────────────────── */
+/** Always returns a live client — reads env vars at call time, not module init */
+function getClient() {
+  if (_supabase) return _supabase
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+  if (url && key) return createClient(url, key)
+  return null
+}
+
+/* ── Row → UserProfile ───────────────────────────────────────────────────── */
 function toProfile(row: any): UserProfile {
   const teachSkills: UserSkill[] = (row.user_skills ?? [])
     .filter((us: any) => us.kind === 'teach')
@@ -30,69 +40,79 @@ function toProfile(row: any): UserProfile {
     id:                row.id,
     displayName:       row.display_name,
     username:          row.username,
-    avatarUrl:         row.avatar_url ?? undefined,
-    bio:               row.bio ?? undefined,
-    location:          row.location ?? undefined,
-    status:            row.status ?? 'online',
-    gradientIndex:     row.gradient_index ?? 0,
+    avatarUrl:         row.avatar_url  ?? undefined,
+    bio:               row.bio         ?? undefined,
+    location:          row.location    ?? undefined,
+    status:            row.status      ?? 'online',
+    gradientIndex:     row.gradient_index     ?? 0,
     sessionsCompleted: row.sessions_completed ?? 0,
-    rating:            row.rating ?? 0,
-    reviewCount:       row.review_count ?? 0,
-    isVerified:        row.is_verified ?? false,
+    rating:            Number(row.rating)     ?? 0,
+    reviewCount:       row.review_count       ?? 0,
+    isVerified:        row.is_verified        ?? false,
     joinedAt:          row.created_at,
     teachSkills,
     learnSkills,
   }
 }
 
-/* ── fetch profile by id ──────────────────────────────────────────────────── */
+/* ── Hash password ───────────────────────────────────────────────────────── */
+async function hashPassword(password: string, email: string): Promise<string> {
+  const buf = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(password + email.toLowerCase())
+  )
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/* ── Fetch profile by stored ID ──────────────────────────────────────────── */
 export async function fetchProfileById(id: string): Promise<UserProfile | null> {
-  if (!supabase) return null
+  const sb = getClient()
+  if (!sb) return null
   try {
-    // Race the DB call against a 5-second timeout
-    const fetchPromise = supabase
+    const fetchPromise = sb
       .from('users')
       .select('*, user_skills(*, skills(*))')
       .eq('id', id)
       .single()
 
-    const timeoutPromise = new Promise<null>((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 5000)
+    const timeout = new Promise<null>((_, rej) =>
+      setTimeout(() => rej(new Error('timeout')), 5000)
     )
 
-    const result = await Promise.race([fetchPromise, timeoutPromise]) as any
-    if (result?.error || !result?.data) return null
+    const result = await Promise.race([fetchPromise, timeout]) as any
+    if (!result || result.error || !result.data) return null
     return toProfile(result.data)
   } catch {
     return null
   }
 }
 
-/* ── sign up ──────────────────────────────────────────────────────────────── */
+/* ── Sign up ─────────────────────────────────────────────────────────────── */
 export async function signUp(
   email: string,
   password: string,
   displayName: string,
   username: string
 ): Promise<{ user: UserProfile | null; error: string | null }> {
-  if (!supabase) return { user: null, error: 'Supabase not connected' }
+  const sb = getClient()
+  if (!sb) return { user: null, error: 'Supabase not connected. Add credentials to Vercel env vars.' }
 
   try {
-    // Check email already exists
-    const { data: existing } = await supabase
+    // Email taken?
+    const { data: existing } = await sb
       .from('users').select('id').eq('email', email.toLowerCase()).maybeSingle()
     if (existing) return { user: null, error: 'An account with this email already exists.' }
 
-    // Check username taken
-    const { data: takenUsername } = await supabase
+    // Username taken?
+    const { data: takenUser } = await sb
       .from('users').select('id').eq('username', username.toLowerCase()).maybeSingle()
-    if (takenUsername) return { user: null, error: 'Username is already taken.' }
+    if (takenUser) return { user: null, error: 'Username is already taken.' }
 
-    // Hash password
-    const hashBuffer   = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + email))
-    const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+    const passwordHash = await hashPassword(password, email)
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('users')
       .insert({
         email:              email.toLowerCase(),
@@ -115,26 +135,26 @@ export async function signUp(
     localStorage.setItem(SESSION_KEY, profile.id)
     return { user: profile, error: null }
   } catch (err: any) {
-    const msg = err?.message ?? ''
-    if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('network')) {
+    const msg: string = err?.message ?? ''
+    if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('Failed')) {
       return { user: null, error: 'Cannot reach the server. Check your connection.' }
     }
     return { user: null, error: msg || 'Sign up failed. Please try again.' }
   }
 }
 
-/* ── sign in ──────────────────────────────────────────────────────────────── */
+/* ── Sign in ─────────────────────────────────────────────────────────────── */
 export async function signIn(
   email: string,
   password: string
 ): Promise<{ user: UserProfile | null; error: string | null }> {
-  if (!supabase) return { user: null, error: 'Supabase not connected' }
+  const sb = getClient()
+  if (!sb) return { user: null, error: 'Supabase not connected. Add credentials to Vercel env vars.' }
 
   try {
-    const hashBuffer   = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + email))
-    const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+    const passwordHash = await hashPassword(password, email)
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('users')
       .select('*, user_skills(*, skills(*))')
       .eq('email', email.toLowerCase())
@@ -148,20 +168,19 @@ export async function signIn(
     localStorage.setItem(SESSION_KEY, profile.id)
     return { user: profile, error: null }
   } catch (err: any) {
-    const msg = err?.message ?? ''
-    if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('network')) {
+    const msg: string = err?.message ?? ''
+    if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('Failed')) {
       return { user: null, error: 'Cannot reach the server. Check your connection.' }
     }
     return { user: null, error: msg || 'Sign in failed. Please try again.' }
   }
 }
 
-/* ── sign out ─────────────────────────────────────────────────────────────── */
+/* ── Sign out ────────────────────────────────────────────────────────────── */
 export function signOutSession() {
   localStorage.removeItem(SESSION_KEY)
 }
 
-/* ── get stored session user id ───────────────────────────────────────────── */
 export function getStoredUserId(): string | null {
   return localStorage.getItem(SESSION_KEY)
 }
@@ -195,20 +214,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const load = async () => {
     setIsLoading(true)
     const id = getStoredUserId()
+
     if (!id) {
-      // No session at all — no need to hit the network
+      // No session — resolve immediately, no network call
       setProfileId(null)
       setProfile(null)
       setIsLoading(false)
       return
     }
+
     try {
       const p = await fetchProfileById(id)
       if (p) {
         setProfileId(p.id)
         setProfile(p)
       } else {
-        // Session expired or network failed — clear it
+        // Network failed or session invalid — clear it
         signOutSession()
         setProfileId(null)
         setProfile(null)

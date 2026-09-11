@@ -4,7 +4,20 @@
  * Session = localStorage key 'skillswap_user_id'.
  * Falls back to mock data when Supabase is not connected.
  */
-import { supabase, isSupabaseReady } from './supabase'
+import { supabase as _supabase, isSupabaseReady } from './supabase'
+import { createClient } from '@supabase/supabase-js'
+
+function getClient() {
+  if (_supabase) return _supabase
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+  if (url && key) return createClient(url, key)
+  return null
+}
+
+function isReady() {
+  return !!getClient()
+}
 import type {
   UserProfile, Skill, Match,
   Message, Thread, Notification, AuthState, SkillLevel, UserSkill
@@ -210,7 +223,7 @@ export function getStoredUserId(): string | null {
 }
 
 export async function getCurrentUserProfile(): Promise<UserProfile> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const id = getStoredUserId()
     if (id) {
       const { data, error } = await supabase
@@ -228,7 +241,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
    PROFILES
 ───────────────────────────────────────────────────────────────────────────── */
 export async function getUserProfileById(id: string): Promise<UserProfile | null> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { data, error } = await supabase
       .from('users')
       .select('*, user_skills(*, skills(*))')
@@ -241,7 +254,7 @@ export async function getUserProfileById(id: string): Promise<UserProfile | null
 }
 
 export async function getUserProfileByUsername(username: string): Promise<UserProfile | null> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { data, error } = await supabase
       .from('users')
       .select('*, user_skills(*, skills(*))')
@@ -257,7 +270,7 @@ export async function updateProfile(
   userId: string,
   updates: { display_name?: string; bio?: string; location?: string }
 ): Promise<boolean> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { error } = await supabase.from('users').update(updates).eq('id', userId)
     return !error
   }
@@ -268,7 +281,7 @@ export async function updateProfile(
    SKILLS
 ───────────────────────────────────────────────────────────────────────────── */
 export async function getAllSkills(): Promise<Skill[]> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { data, error } = await supabase
       .from('skills').select('*').order('popularity', { ascending: false })
     if (!error && data) return data as Skill[]
@@ -280,7 +293,7 @@ export async function upsertUserSkills(
   userId: string,
   skills: Array<{ skillId: string; kind: 'teach' | 'learn'; level?: SkillLevel }>
 ): Promise<boolean> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     await supabase.from('user_skills').delete().eq('user_id', userId)
     if (skills.length === 0) return true
     const rows = skills.map(s => ({
@@ -299,7 +312,7 @@ export async function upsertUserSkills(
    MATCHES
 ───────────────────────────────────────────────────────────────────────────── */
 export async function getMatches(): Promise<Match[]> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const myId = getStoredUserId()
     if (!myId) return []
 
@@ -347,7 +360,7 @@ export async function getMatches(): Promise<Match[]> {
    THREADS & MESSAGES
 ───────────────────────────────────────────────────────────────────────────── */
 export async function getThreads(): Promise<Thread[]> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const myId = getStoredUserId()
     if (!myId) return []
 
@@ -391,7 +404,7 @@ export async function getThreads(): Promise<Thread[]> {
 }
 
 export async function getMessages(threadId: string): Promise<Message[]> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { data, error } = await supabase
       .from('messages').select('*').eq('thread_id', threadId)
       .order('created_at', { ascending: true })
@@ -403,7 +416,7 @@ export async function getMessages(threadId: string): Promise<Message[]> {
 export async function sendMessage(
   threadId: string, content: string, senderId: string
 ): Promise<Message | null> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { data, error } = await supabase
       .from('messages')
       .insert({ thread_id: threadId, sender_id: senderId, content, status: 'sent' })
@@ -418,7 +431,7 @@ export async function sendMessage(
 }
 
 export async function getOrCreateThread(myId: string, otherId: string): Promise<string> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { data: myThreads } = await supabase
       .from('thread_participants').select('thread_id').eq('user_id', myId)
     const myThreadIds = (myThreads ?? []).map((r: any) => r.thread_id)
@@ -450,7 +463,7 @@ export async function createSwapRequest(
   fromId: string, toId: string,
   teachSkill: string, learnSkill: string, message?: string
 ): Promise<boolean> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { error } = await supabase.from('swap_requests').insert({
       from_user_id: fromId, to_user_id: toId,
       teach_skill: teachSkill, learn_skill: learnSkill,
@@ -465,7 +478,7 @@ export async function createSwapRequest(
    NOTIFICATIONS
 ───────────────────────────────────────────────────────────────────────────── */
 export async function getNotifications(userId: string): Promise<Notification[]> {
-  if (isSupabaseReady && supabase) {
+  const supabase = getClient(); if (supabase) {
     const { data, error } = await supabase
       .from('notifications').select('*').eq('user_id', userId)
       .order('created_at', { ascending: false }).limit(20)
