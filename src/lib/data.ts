@@ -136,6 +136,38 @@ export async function updateProfile(
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   ALL USERS (for "Browse All" mode — ignores skill overlap)
+───────────────────────────────────────────────────────────────────────────── */
+export async function getAllUsers(): Promise<Match[]> {
+  const supabase = getClient()
+  if (!supabase) return []
+  const myId = getStoredUserId()
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('*, user_skills(*, skills(*))')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error || !data) return []
+
+  return data
+    .filter((row: any) => row.id !== myId)
+    .map((row: any) => {
+      const profile = toProfile(row)
+      return {
+        id:          `match-${profile.id}`,
+        userId:      profile.id,
+        profile,
+        matchScore:  0,
+        sharedTeach: profile.teachSkills.map(s => s.skillName),
+        sharedLearn: profile.learnSkills.map(s => s.skillName),
+        createdAt:   new Date().toISOString(),
+      }
+    })
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    SKILLS
 ───────────────────────────────────────────────────────────────────────────── */
 export async function getAllSkills(): Promise<Skill[]> {

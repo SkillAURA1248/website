@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Filter, X, Star, MapPin, Sparkles, Shield, ArrowRight } from 'lucide-react'
+import { Search, Filter, X, Star, MapPin, Sparkles, Shield, ArrowRight, Users } from 'lucide-react'
 import Layout from '../components/Layout'
 import { SkillPill } from '../components/ui/SkillPill'
 import { Button } from '../components/ui/Button'
-import { getMatches, getAllSkills } from '../lib/data'
+import { getMatches, getAllUsers, getAllSkills } from '../lib/data'
 import type { Match, Skill } from '../lib/types'
 
 const GRADIENTS = [
@@ -16,7 +16,7 @@ const GRADIENTS = [
   'linear-gradient(135deg,#F59E0B,#D97706)',
 ]
 
-function MatchCard({ match, delay = 0 }: { match: Match; delay?: number }) {
+function MatchCard({ match, showScore = true, delay = 0 }: { match: Match; showScore?: boolean; delay?: number }) {
   const navigate = useNavigate()
   const { profile } = match
   return (
@@ -60,26 +60,46 @@ function MatchCard({ match, delay = 0 }: { match: Match; delay?: number }) {
             )}
           </div>
         </div>
-        <div className="px-2.5 py-1 rounded-full text-xs font-bold"
-          style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#c4b5fd' }}>
-          {match.matchScore}%
-        </div>
+        {showScore && match.matchScore > 0 ? (
+          <div className="px-2.5 py-1 rounded-full text-xs font-bold"
+            style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#c4b5fd' }}>
+            {match.matchScore}%
+          </div>
+        ) : (
+          <div className="px-2.5 py-1 rounded-full text-xs font-bold"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}>
+            All
+          </div>
+        )}
       </div>
 
       {/* Skills */}
       <div className="space-y-3 mb-4">
-        <div>
-          <div className="text-xs text-white/30 uppercase tracking-widest mb-1.5">Can teach you</div>
-          <div className="flex flex-wrap gap-1.5">
-            {match.sharedTeach.slice(0, 3).map(s => <SkillPill key={s} skill={s} selected size="sm" />)}
+        {match.sharedTeach.length > 0 && (
+          <div>
+            <div className="text-xs text-white/30 uppercase tracking-widest mb-1.5">Can teach</div>
+            <div className="flex flex-wrap gap-1.5">
+              {match.sharedTeach.slice(0, 3).map(s => <SkillPill key={s} skill={s} selected size="sm" />)}
+              {match.sharedTeach.length > 3 && (
+                <span className="text-xs text-white/30 self-center">+{match.sharedTeach.length - 3} more</span>
+              )}
+            </div>
           </div>
-        </div>
-        <div>
-          <div className="text-xs text-white/30 uppercase tracking-widest mb-1.5">Wants to learn</div>
-          <div className="flex flex-wrap gap-1.5">
-            {match.sharedLearn.slice(0, 3).map(s => <SkillPill key={s} skill={s} size="sm" />)}
+        )}
+        {match.sharedLearn.length > 0 && (
+          <div>
+            <div className="text-xs text-white/30 uppercase tracking-widest mb-1.5">Wants to learn</div>
+            <div className="flex flex-wrap gap-1.5">
+              {match.sharedLearn.slice(0, 3).map(s => <SkillPill key={s} skill={s} size="sm" />)}
+              {match.sharedLearn.length > 3 && (
+                <span className="text-xs text-white/30 self-center">+{match.sharedLearn.length - 3} more</span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+        {match.sharedTeach.length === 0 && match.sharedLearn.length === 0 && (
+          <p className="text-xs text-white/25 italic">No skills listed yet</p>
+        )}
       </div>
 
       {/* Footer */}
@@ -96,8 +116,12 @@ function MatchCard({ match, delay = 0 }: { match: Match; delay?: number }) {
   )
 }
 
+type ViewMode = 'matches' | 'all'
+
 export default function DiscoverPage() {
+  const [viewMode,      setViewMode]      = useState<ViewMode>('matches')
   const [matches,       setMatches]       = useState<Match[]>([])
+  const [allUsers,      setAllUsers]      = useState<Match[]>([])
   const [skills,        setSkills]        = useState<Skill[]>([])
   const [selectedSkills,setSelectedSkills]= useState<string[]>([])
   const [searchQuery,   setSearchQuery]   = useState('')
@@ -106,8 +130,10 @@ export default function DiscoverPage() {
   const [locationFilter,setLocationFilter]= useState('')
 
   useEffect(() => {
-    Promise.all([getMatches(), getAllSkills()]).then(([m, s]) => {
+    setIsLoading(true)
+    Promise.all([getMatches(), getAllUsers(), getAllSkills()]).then(([m, u, s]) => {
       setMatches(m)
+      setAllUsers(u)
       setSkills(s)
       setIsLoading(false)
     })
@@ -118,7 +144,10 @@ export default function DiscoverPage() {
 
   const clearFilters = () => { setSelectedSkills([]); setSearchQuery(''); setLocationFilter('') }
 
-  const filtered = matches.filter(m => {
+  // Source list depends on view mode
+  const source = viewMode === 'matches' ? matches : allUsers
+
+  const filtered = source.filter(m => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       if (
@@ -152,8 +181,34 @@ export default function DiscoverPage() {
               <Button variant="secondary" onClick={() => setShowFilters(!showFilters)} iconLeft={<Filter size={15} />}>
                 Filters
               </Button>
-              <span className="text-sm text-white/30">{filtered.length} matches</span>
+              <span className="text-sm text-white/30">{filtered.length} {viewMode === 'matches' ? 'matches' : 'people'}</span>
             </div>
+          </div>
+
+          {/* View mode toggle */}
+          <div className="flex gap-2 mt-5">
+            <button
+              onClick={() => setViewMode('matches')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                background: viewMode === 'matches' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
+                border:     viewMode === 'matches' ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.07)',
+                color:      viewMode === 'matches' ? '#c4b5fd' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              <Sparkles size={14} /> My Matches
+            </button>
+            <button
+              onClick={() => setViewMode('all')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                background: viewMode === 'all' ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)',
+                border:     viewMode === 'all' ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.07)',
+                color:      viewMode === 'all' ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              <Users size={14} /> All Swaps
+            </button>
           </div>
         </motion.div>
 
@@ -199,7 +254,7 @@ export default function DiscoverPage() {
           <div className="mt-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-white/30 uppercase tracking-widest">Filter by skill</span>
-              {selectedSkills.length > 0 && (
+              {(selectedSkills.length > 0 || locationFilter) && (
                 <button onClick={clearFilters} className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
                   <X size={11} /> Clear
                 </button>
@@ -238,13 +293,15 @@ export default function DiscoverPage() {
         ) : filtered.length > 0 ? (
           <div>
             <div className="flex items-center gap-2 mb-5">
-              <Sparkles size={16} className="text-purple-400" />
-              <span className="text-sm font-bold text-white">
-                {filtered.length} potential swap{filtered.length !== 1 ? 's' : ''}
-              </span>
+              {viewMode === 'matches'
+                ? <><Sparkles size={16} className="text-purple-400" /><span className="text-sm font-bold text-white">{filtered.length} potential swap{filtered.length !== 1 ? 's' : ''}</span></>
+                : <><Users size={16} className="text-amber-400" /><span className="text-sm font-bold text-white">{filtered.length} people on the platform</span></>
+              }
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filtered.map((m, i) => <MatchCard key={m.id} match={m} delay={i * 0.05} />)}
+              {filtered.map((m, i) => (
+                <MatchCard key={m.id} match={m} showScore={viewMode === 'matches'} delay={i * 0.04} />
+              ))}
             </div>
           </div>
         ) : (
@@ -254,11 +311,22 @@ export default function DiscoverPage() {
               style={{ background: 'rgba(139,92,246,0.08)' }}>
               <Search size={28} className="text-purple-400" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">No matches found</h3>
+            <h3 className="text-lg font-bold text-white mb-2">
+              {viewMode === 'matches' ? 'No matches found' : 'No people found'}
+            </h3>
             <p className="text-white/40 text-sm max-w-sm mb-5">
-              Try adjusting your filters or add more skills in Settings.
+              {viewMode === 'matches'
+                ? 'Try "All Swaps" to browse everyone on the platform, or add more skills in Settings.'
+                : 'Try adjusting your search or filters.'}
             </p>
-            <Button variant="secondary" onClick={clearFilters}>Clear filters</Button>
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={clearFilters}>Clear filters</Button>
+              {viewMode === 'matches' && (
+                <Button variant="primary" onClick={() => setViewMode('all')} iconLeft={<Users size={14} />}>
+                  Browse All
+                </Button>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -268,9 +336,9 @@ export default function DiscoverPage() {
             style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
             {[
               { value: matches.length > 0 ? `${Math.round(matches.reduce((a, m) => a + m.matchScore, 0) / matches.length)}%` : '—', label: 'Avg match score' },
-              { value: matches.length, label: 'Total matches' },
+              { value: matches.length, label: 'My matches' },
+              { value: allUsers.length, label: 'Total users' },
               { value: skills.length,  label: 'Skills on platform' },
-              { value: `${(matches.reduce((a, m) => a + m.profile.rating, 0) / Math.max(matches.length, 1)).toFixed(1)} ★`, label: 'Avg rating' },
             ].map(stat => (
               <div key={stat.label} className="text-center">
                 <div className="text-2xl font-bold text-white">{stat.value}</div>
