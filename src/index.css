@@ -1,0 +1,340 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE LAYER — resets, root vars, scrollbar, selection
+───────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-base:           #07090D;
+    --color-base-secondary: #0C1017;
+    --color-card:           #11151D;
+    --color-card-elevated:  #151A24;
+    --color-purple:         #8B5CF6;
+    --color-purple-glow:    rgba(139,92,246,0.35);
+    --color-purple-faint:   rgba(139,92,246,0.08);
+    --color-gold:           #FBBF24;
+    --color-gold-glow:      rgba(251,191,36,0.30);
+    --color-border:         rgba(255,255,255,0.08);
+    --color-border-subtle:  rgba(255,255,255,0.05);
+    --nav-height:           3.5rem;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-base);
+    color: #F4F6FA;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.625;
+    overflow-x: hidden;
+    min-height: 100dvh;
+  }
+
+  /* ── Text selection ──────────────────────────────────────────────── */
+  ::selection {
+    background-color: rgba(139,92,246,0.35);
+    color: #F4F6FA;
+  }
+
+  /* ── Custom scrollbar ────────────────────────────────────────────── */
+  ::-webkit-scrollbar              { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track        { background: transparent; }
+  ::-webkit-scrollbar-thumb        { background: rgba(139,92,246,0.25); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover  { background: rgba(139,92,246,0.45); }
+  ::-webkit-scrollbar-corner       { background: transparent; }
+
+  /* ── Focus visible ───────────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid var(--color-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ── Heading defaults ────────────────────────────────────────────── */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    color: #F4F6FA;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  p { color: #8892A0; line-height: 1.7; }
+
+  img, svg { display: block; max-width: 100%; }
+  button { cursor: pointer; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ATMOSPHERIC BACKGROUND SYSTEM
+   Layered radial blobs + faint grid — all fixed so they stay as you scroll
+───────────────────────────────────────────────────────────────────────────── */
+#root {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+}
+
+/* Fixed atmospheric blobs rendered behind everything */
+#root::before,
+#root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Primary purple atmosphere — top-center bloom */
+#root::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%,
+      rgba(139,92,246,0.13) 0%,
+      transparent 65%),
+    radial-gradient(ellipse 50% 35% at 80% 100%,
+      rgba(139,92,246,0.07) 0%,
+      transparent 60%),
+    radial-gradient(ellipse 40% 30% at 10% 60%,
+      rgba(139,92,246,0.05) 0%,
+      transparent 60%);
+}
+
+/* Subtle faint dot-grid overlay */
+#root::after {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.6;
+  mask-image: radial-gradient(ellipse 100% 100% at 50% 50%,
+    rgba(0,0,0,0.6) 0%,
+    transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%,
+    rgba(0,0,0,0.6) 0%,
+    transparent 75%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMPONENT LAYER — reusable CSS classes
+───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Layout ─────────────────────────────────────────────────────── */
+  .ss-page {
+    @apply min-h-screen pt-[var(--nav-height)] px-4 md:px-6 lg:px-8;
+  }
+
+  .ss-container {
+    @apply max-w-7xl mx-auto w-full;
+  }
+
+  .ss-section {
+    @apply py-8 md:py-12;
+  }
+
+  /* ── Card surfaces ───────────────────────────────────────────────── */
+  .ss-card {
+    @apply rounded-xl border bg-card shadow-card;
+    background-image: linear-gradient(135deg,
+      rgba(255,255,255,0.03) 0%,
+      transparent 60%);
+    border-color: var(--color-border);
+  }
+
+  .ss-card-elevated {
+    @apply rounded-xl border bg-card-elevated shadow-card-elevated;
+    background-image: linear-gradient(135deg,
+      rgba(255,255,255,0.05) 0%,
+      transparent 55%);
+    border-color: rgba(255,255,255,0.10);
+  }
+
+  /* Card hover lift — add .ss-card-interactive alongside ss-card */
+  .ss-card-interactive {
+    @apply transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)];
+  }
+  .ss-card-interactive:hover {
+    @apply shadow-purple-sm -translate-y-0.5;
+    border-color: rgba(139,92,246,0.25);
+  }
+
+  /* ── Dividers ────────────────────────────────────────────────────── */
+  .ss-divider {
+    @apply border-t border-border my-4;
+  }
+
+  /* ── Glow blobs — decorative positioned elements ─────────────────── */
+  .ss-glow-purple {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%);
+    filter: blur(48px);
+    pointer-events: none;
+  }
+
+  .ss-glow-gold {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(251,191,36,0.20) 0%, transparent 70%);
+    filter: blur(48px);
+    pointer-events: none;
+  }
+
+  /* ── Section label ───────────────────────────────────────────────── */
+  .ss-label {
+    @apply text-2xs font-semibold uppercase tracking-widest text-text-secondary;
+  }
+
+  /* ── Stat number ─────────────────────────────────────────────────── */
+  .ss-stat-number {
+    @apply text-3xl font-extrabold tracking-tight text-text-primary;
+  }
+
+  /* ── Animated gradient text ──────────────────────────────────────── */
+  .ss-gradient-text {
+    background: linear-gradient(135deg, #A97EFF 0%, #8B5CF6 40%, #FBBF24 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .ss-gradient-text-purple {
+    background: linear-gradient(135deg, #C9AAFF 0%, #8B5CF6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Match percentage badge ──────────────────────────────────────── */
+  .ss-match-badge {
+    @apply text-2xs font-bold uppercase tracking-widest;
+    background: linear-gradient(90deg, #8B5CF6, #A97EFF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Scrollable row (no scrollbar visible) ───────────────────────── */
+  .ss-scroll-x {
+    @apply overflow-x-auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .ss-scroll-x::-webkit-scrollbar { display: none; }
+
+  /* ── Tab bar ─────────────────────────────────────────────────────── */
+  .ss-tab-bar {
+    @apply flex gap-1 p-1 rounded-lg;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+  }
+
+  .ss-tab {
+    @apply px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200
+           text-text-secondary hover:text-text-primary cursor-pointer;
+  }
+
+  .ss-tab-active {
+    @apply ss-tab text-text-primary;
+    background: rgba(139,92,246,0.15);
+    color: #C9AAFF;
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.25);
+  }
+
+  /* ── Connection line pulse ───────────────────────────────────────── */
+  .ss-connection-line {
+    stroke: rgba(139,92,246,0.5);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 4;
+    animation: line-draw 1s ease forwards, glow-pulse 2.5s ease-in-out infinite;
+  }
+
+  /* ── Noise texture overlay (very subtle) ─────────────────────────── */
+  .ss-noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.4;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   UTILITY LAYER — small one-off helpers
+───────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Purple glow ring */
+  .ring-purple-glow {
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.4), 0 0 16px rgba(139,92,246,0.25);
+  }
+
+  /* Gold glow ring */
+  .ring-gold-glow {
+    box-shadow: 0 0 0 1px rgba(251,191,36,0.4), 0 0 16px rgba(251,191,36,0.25);
+  }
+
+  /* Thin top gradient separator */
+  .border-top-purple {
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(139,92,246,0.5), transparent) 1;
+  }
+
+  /* Shimmer loading state */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.03) 25%,
+      rgba(255,255,255,0.07) 50%,
+      rgba(255,255,255,0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.5s linear infinite;
+  }
+
+  /* Truncate with ellipsis */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Frosted glass surface */
+  .glass {
+    background: rgba(17,21,29,0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Frosted glass — lighter */
+  .glass-light {
+    background: rgba(21,26,36,0.60);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Purple tinted glass */
+  .glass-purple {
+    background: rgba(139,92,246,0.07);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(139,92,246,0.18);
+  }
+}
