@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { SkillDNA, type SkillNode } from '../components/ui/SkillDNA'
 import type { SkillLevel } from '../components/ui/SkillPill'
 import { saveOnboardingProfile } from '../lib/onboardingService'
+import { useAuth } from '../lib/auth'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    CONSTANTS
@@ -834,6 +835,7 @@ function FinalScreen({
 ───────────────────────────────────────────────────────────────────────────── */
 export default function OnboardingPage() {
   const navigate = useNavigate()
+  const { reload } = useAuth()
 
   /* ── Wizard state ───────────────────────────────────────────────────── */
   const [step, setStep]       = useState(1)             // 1 | 2 | 3 | 4(done)
@@ -887,6 +889,8 @@ export default function OnboardingPage() {
         })),
         learnSkills: state.learnSkills,
       })
+      // Sync AuthContext with the freshly saved profile before navigating
+      await reload()
     } catch {
       // ignore save errors — local storage might be unavailable
     }

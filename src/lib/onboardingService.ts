@@ -2,7 +2,8 @@
  * SkillSwap — Onboarding Service
  * Saves skills to Supabase users table (no Supabase Auth).
  */
-import { supabase, isSupabaseReady } from './supabase'
+import { createClient } from '@supabase/supabase-js'
+import { supabase as _supabase } from './supabase'
 import type { SkillLevel } from '../components/ui/SkillPill'
 
 export interface TeachSkill  { name: string; level: SkillLevel }
@@ -15,9 +16,20 @@ export interface OnboardingProfile {
 const STORAGE_KEY  = 'skillswap_onboarding_v1'
 const SESSION_KEY  = 'skillswap_user_id'
 
+/** Always returns a live client — reads env vars at call time */
+function getClient() {
+  if (_supabase) return _supabase
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+  if (!url || !key) return null
+  if (!url.startsWith('https://') && !url.startsWith('http://')) return null
+  try { return createClient(url, key) } catch { return null }
+}
+
 /* ── Supabase save ───────────────────────────────────────────────────────── */
 async function supabase_save(teachSkills: TeachSkill[], learnSkills: string[]): Promise<void> {
-  if (!supabase) return
+  const sb = getClient()
+  if (!sb) return
   const userId = localStorage.getItem(SESSION_KEY)
   if (!userId) return
 
@@ -26,12 +38,12 @@ async function supabase_save(teachSkills: TeachSkill[], learnSkills: string[]): 
 
   // Upsert each skill (insert if not exists)
   for (const name of allNames) {
-    await supabase.from('skills')
+    await sb.from('skills')
       .upsert({ name, category: 'other', popularity: 50 }, { onConflict: 'name', ignoreDuplicates: true })
   }
 
   // Fetch skill IDs
-  const { data: skillRows } = await supabase
+  const { data: skillRows } = await sb
     .from('skills').select('id, name').in('name', allNames)
   if (!skillRows) return
 
@@ -39,7 +51,7 @@ async function supabase_save(teachSkills: TeachSkill[], learnSkills: string[]): 
   for (const s of skillRows) nameToId[s.name] = s.id
 
   // Delete old, insert new
-  await supabase.from('user_skills').delete().eq('user_id', userId)
+  await sb.from('user_skills').delete().eq('user_id', userId)
 
   const rows = [
     ...teachSkills.map(s => ({
@@ -50,7 +62,7 @@ async function supabase_save(teachSkills: TeachSkill[], learnSkills: string[]): 
     })),
   ].filter(r => r.skill_id)
 
-  if (rows.length > 0) await supabase.from('user_skills').insert(rows)
+  if (rows.length > 0) await sb.from('user_skills').insert(rows)
 }
 
 /* ── localStorage ────────────────────────────────────────────────────────── */
@@ -70,10 +82,8 @@ export async function saveOnboardingProfile(
 ): Promise<boolean> {
   const full: OnboardingProfile = { ...profile, completedAt: new Date().toISOString() }
   local_save(full)
-  if (isSupabaseReady) {
-    try { await supabase_save(profile.teachSkills, profile.learnSkills) }
-    catch (err) { console.warn('Onboarding save error:', err) }
-  }
+  try { await supabase_save(profile.teachSkills, profile.learnSkills) }
+  catch (err) { console.warn('Onboarding save error:', err) }
   return true
 }
 
