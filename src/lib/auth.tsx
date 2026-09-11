@@ -13,10 +13,15 @@ const SESSION_KEY = 'skillswap_user_id'
 /** Always returns a live client — reads env vars at call time, not module init */
 function getClient() {
   if (_supabase) return _supabase
-  const url = import.meta.env.VITE_SUPABASE_URL
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
-  if (url && key) return createClient(url, key)
-  return null
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+  if (!url || !key) return null
+  if (!url.startsWith('https://') && !url.startsWith('http://')) return null
+  try {
+    return createClient(url, key)
+  } catch {
+    return null
+  }
 }
 
 /* ── Row → UserProfile ───────────────────────────────────────────────────── */
@@ -97,7 +102,7 @@ export async function signUp(
   username: string
 ): Promise<{ user: UserProfile | null; error: string | null }> {
   const sb = getClient()
-  if (!sb) return { user: null, error: 'Supabase not connected. Add credentials to Vercel env vars.' }
+  if (!sb) return { user: null, error: `Supabase not connected. VITE_SUPABASE_URL=${import.meta.env.VITE_SUPABASE_URL ?? 'missing'}` }
 
   try {
     // Email taken?
@@ -149,7 +154,7 @@ export async function signIn(
   password: string
 ): Promise<{ user: UserProfile | null; error: string | null }> {
   const sb = getClient()
-  if (!sb) return { user: null, error: 'Supabase not connected. Add credentials to Vercel env vars.' }
+  if (!sb) return { user: null, error: `Supabase not connected. VITE_SUPABASE_URL=${import.meta.env.VITE_SUPABASE_URL ?? 'missing'}` }
 
   try {
     const passwordHash = await hashPassword(password, email)

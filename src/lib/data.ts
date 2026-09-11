@@ -9,14 +9,15 @@ import { createClient } from '@supabase/supabase-js'
 
 function getClient() {
   if (_supabase) return _supabase
-  const url = import.meta.env.VITE_SUPABASE_URL
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
-  if (url && key) return createClient(url, key)
-  return null
-}
-
-function isReady() {
-  return !!getClient()
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+  if (!url || !key) return null
+  if (!url.startsWith('https://') && !url.startsWith('http://')) return null
+  try {
+    return createClient(url, key)
+  } catch {
+    return null
+  }
 }
 import type {
   UserProfile, Skill, Match,
