@@ -48,13 +48,24 @@ function toProfile(row: any): UserProfile {
 /* ── fetch profile by id ──────────────────────────────────────────────────── */
 export async function fetchProfileById(id: string): Promise<UserProfile | null> {
   if (!supabase) return null
-  const { data, error } = await supabase
-    .from('users')
-    .select('*, user_skills(*, skills(*))')
-    .eq('id', id)
-    .single()
-  if (error || !data) return null
-  return toProfile(data)
+  try {
+    // Race the DB call against a 5-second timeout
+    const fetchPromise = supabase
+      .from('users')
+      .select('*, user_skills(*, skills(*))')
+      .eq('id', id)
+      .single()
+
+    const timeoutPromise = new Promise<null>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 5000)
+    )
+
+    const result = await Promise.race([fetchPromise, timeoutPromise]) as any
+    if (result?.error || !result?.data) return null
+    return toProfile(result.data)
+  } catch {
+    return null
+  }
 }
 
 /* ── sign up ──────────────────────────────────────────────────────────────── */
@@ -66,50 +77,50 @@ export async function signUp(
 ): Promise<{ user: UserProfile | null; error: string | null }> {
   if (!supabase) return { user: null, error: 'Supabase not connected' }
 
-  // Check email already exists
-  const { data: existing } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', email.toLowerCase())
-    .maybeSingle()
-  if (existing) return { user: null, error: 'An account with this email already exists.' }
+  try {
+    // Check email already exists
+    const { data: existing } = await supabase
+      .from('users').select('id').eq('email', email.toLowerCase()).maybeSingle()
+    if (existing) return { user: null, error: 'An account with this email already exists.' }
 
-  // Check username taken
-  const { data: takenUsername } = await supabase
-    .from('users')
-    .select('id')
-    .eq('username', username.toLowerCase())
-    .maybeSingle()
-  if (takenUsername) return { user: null, error: 'Username is already taken.' }
+    // Check username taken
+    const { data: takenUsername } = await supabase
+      .from('users').select('id').eq('username', username.toLowerCase()).maybeSingle()
+    if (takenUsername) return { user: null, error: 'Username is already taken.' }
 
-  // Hash password using pgcrypto via rpc — or store as bcrypt via a simple approach
-  // We'll use a simple sha256 via the Web Crypto API (browser-safe, no server needed)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + email))
-  const hashArray  = Array.from(new Uint8Array(hashBuffer))
-  const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    // Hash password
+    const hashBuffer   = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + email))
+    const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
 
-  const { data, error } = await supabase
-    .from('users')
-    .insert({
-      email:              email.toLowerCase(),
-      password_hash:      passwordHash,
-      display_name:       displayName,
-      username:           username.toLowerCase().replace(/\s+/g, '_'),
-      status:             'online',
-      gradient_index:     Math.floor(Math.random() * 5),
-      sessions_completed: 0,
-      rating:             0,
-      review_count:       0,
-      is_verified:        false,
-    })
-    .select('*, user_skills(*, skills(*))')
-    .single()
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        email:              email.toLowerCase(),
+        password_hash:      passwordHash,
+        display_name:       displayName,
+        username:           username.toLowerCase().replace(/\s+/g, '_'),
+        status:             'online',
+        gradient_index:     Math.floor(Math.random() * 5),
+        sessions_completed: 0,
+        rating:             0,
+        review_count:       0,
+        is_verified:        false,
+      })
+      .select('*, user_skills(*, skills(*))')
+      .single()
 
-  if (error) return { user: null, error: error.message }
+    if (error) return { user: null, error: error.message }
 
-  const profile = toProfile(data)
-  localStorage.setItem(SESSION_KEY, profile.id)
-  return { user: profile, error: null }
+    const profile = toProfile(data)
+    localStorage.setItem(SESSION_KEY, profile.id)
+    return { user: profile, error: null }
+  } catch (err: any) {
+    const msg = err?.message ?? ''
+    if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('network')) {
+      return { user: null, error: 'Cannot reach the server. Check your connection.' }
+    }
+    return { user: null, error: msg || 'Sign up failed. Please try again.' }
+  }
 }
 
 /* ── sign in ──────────────────────────────────────────────────────────────── */
@@ -119,23 +130,30 @@ export async function signIn(
 ): Promise<{ user: UserProfile | null; error: string | null }> {
   if (!supabase) return { user: null, error: 'Supabase not connected' }
 
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + email))
-  const hashArray  = Array.from(new Uint8Array(hashBuffer))
-  const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  try {
+    const hashBuffer   = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + email))
+    const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*, user_skills(*, skills(*))')
-    .eq('email', email.toLowerCase())
-    .eq('password_hash', passwordHash)
-    .maybeSingle()
+    const { data, error } = await supabase
+      .from('users')
+      .select('*, user_skills(*, skills(*))')
+      .eq('email', email.toLowerCase())
+      .eq('password_hash', passwordHash)
+      .maybeSingle()
 
-  if (error) return { user: null, error: error.message }
-  if (!data)  return { user: null, error: 'Incorrect email or password.' }
+    if (error) return { user: null, error: error.message }
+    if (!data)  return { user: null, error: 'Incorrect email or password.' }
 
-  const profile = toProfile(data)
-  localStorage.setItem(SESSION_KEY, profile.id)
-  return { user: profile, error: null }
+    const profile = toProfile(data)
+    localStorage.setItem(SESSION_KEY, profile.id)
+    return { user: profile, error: null }
+  } catch (err: any) {
+    const msg = err?.message ?? ''
+    if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('network')) {
+      return { user: null, error: 'Cannot reach the server. Check your connection.' }
+    }
+    return { user: null, error: msg || 'Sign in failed. Please try again.' }
+  }
 }
 
 /* ── sign out ─────────────────────────────────────────────────────────────── */
@@ -177,22 +195,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const load = async () => {
     setIsLoading(true)
     const id = getStoredUserId()
-    if (id) {
+    if (!id) {
+      // No session at all — no need to hit the network
+      setProfileId(null)
+      setProfile(null)
+      setIsLoading(false)
+      return
+    }
+    try {
       const p = await fetchProfileById(id)
       if (p) {
         setProfileId(p.id)
         setProfile(p)
       } else {
-        // Session ID invalid — clear it
+        // Session expired or network failed — clear it
         signOutSession()
         setProfileId(null)
         setProfile(null)
       }
-    } else {
+    } catch {
       setProfileId(null)
       setProfile(null)
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   useEffect(() => { load() }, [])
