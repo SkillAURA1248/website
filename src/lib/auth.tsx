@@ -140,11 +140,9 @@ export async function signUp(
     localStorage.setItem(SESSION_KEY, profile.id)
     return { user: profile, error: null }
   } catch (err: any) {
-    const msg: string = err?.message ?? ''
-    if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('Failed')) {
-      return { user: null, error: 'Cannot reach the server. Check your connection.' }
-    }
-    return { user: null, error: msg || 'Sign up failed. Please try again.' }
+    const msg: string = err?.message ?? String(err)
+    console.error('signUp error full:', err)
+    return { user: null, error: `Error: ${msg}` }
   }
 }
 
