@@ -3,17 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { Button } from '../components/ui/Button'
-import { supabase as _supabase, isSupabaseReady } from '../lib/supabase'
-import { createClient } from '@supabase/supabase-js'
-
-// Always try to create a client — works even if module loaded before env vars resolved
-function getClient() {
-  if (_supabase) return _supabase
-  const url = import.meta.env.VITE_SUPABASE_URL
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
-  if (url && key) return createClient(url, key)
-  return null
-}
+import { signIn, signUp } from '../lib/auth'
 
 export default function AuthPage() {
   const [tab,       setTab]      = useState<'signin' | 'signup'>('signin')
@@ -26,77 +16,31 @@ export default function AuthPage() {
   const [error,     setError]    = useState<string | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
-  // If redirected here from a protected route, go back there after login
   const from = (location.state as any)?.from ?? '/discover'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
 
-    if (!email || !password) { setError('Please fill in all fields.'); setLoading(false); return }
-    if (password.length < 6)  { setError('Password must be at least 6 characters.'); setLoading(false); return }
+    if (!email || !password) { setError('Please fill in all fields.'); return }
+    if (password.length < 6)  { setError('Password must be at least 6 characters.'); return }
+    if (tab === 'signup' && !name.trim()) { setError('Please enter your full name.'); return }
+    if (tab === 'signup' && !username.trim()) { setError('Please choose a username.'); return }
 
-    const sb = getClient()
-
-    if (!sb) {
-      setError('Supabase credentials missing. Contact support.')
-      setLoading(false)
-      return
-    }
+    setLoading(true)
 
     try {
       if (tab === 'signup') {
-        const { data, error: authErr } = await sb.auth.signUp({
-          email, password,
-          options: { data: { display_name: name, username: username.toLowerCase().replace(/\s+/g, '_') } },
-        })
-        if (authErr) throw authErr
-
-        // Check if email confirmation is required
-        if (!data.session) {
-          // Supabase requires email confirmation — show message instead of navigating
-          setError(null)
-          setLoading(false)
-          // Show confirmation message
-          ;(document.getElementById('confirm-msg') as HTMLElement).style.display = 'block'
-          return
-        }
-
-        if (data.user) {
-          try {
-            await sb.from('profiles').insert({
-              auth_user_id:       data.user.id,
-              display_name:       name,
-              username:           username.toLowerCase().replace(/\s+/g, '_'),
-              status:             'online',
-              gradient_index:     Math.floor(Math.random() * 5),
-              sessions_completed: 0,
-              rating:             0,
-              review_count:       0,
-              is_verified:        false,
-            })
-          } catch {
-            console.warn('Profile insert failed — run supabase/schema.sql first')
-          }
-        }
-        navigate('/onboarding')
+        const { user, error: err } = await signUp(email, password, name.trim(), username.trim())
+        if (err)   { setError(err); return }
+        if (user)  navigate('/onboarding')
       } else {
-        const { error: authErr } = await sb.auth.signInWithPassword({ email, password })
-        if (authErr) throw authErr
-        navigate(from)
+        const { user, error: err } = await signIn(email, password)
+        if (err)   { setError(err); return }
+        if (user)  navigate(from)
       }
     } catch (err: any) {
-      const msg: string = err?.message ?? String(err)
-      if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
-        setError('Cannot reach the server. Try again or check your connection.')
-      } else if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
-        setError('Incorrect email or password.')
-      } else if (msg.toLowerCase().includes('already registered')) {
-        setError('An account with this email already exists. Try signing in.')
-      } else {
-        setError(msg)
-      }
+      setError(err?.message ?? 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -104,6 +48,8 @@ export default function AuthPage() {
 
   const inputCls = `w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none transition-all bg-[#0C1017]`
   const inputStyle = { border: '1px solid rgba(255,255,255,0.08)' }
+  const focusStyle = 'rgba(139,92,246,0.4)'
+  const blurStyle  = 'rgba(255,255,255,0.08)'
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: '#07090D' }}>
@@ -147,28 +93,28 @@ export default function AuthPage() {
               <>
                 <input type="text" placeholder="Full name" value={name}
                   onChange={e => setName(e.target.value)} className={inputCls} style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor='rgba(139,92,246,0.4)')}
-                  onBlur={e =>  (e.currentTarget.style.borderColor='rgba(255,255,255,0.08)')}
+                  onFocus={e => (e.currentTarget.style.borderColor = focusStyle)}
+                  onBlur={e =>  (e.currentTarget.style.borderColor = blurStyle)}
                   required />
                 <input type="text" placeholder="Username" value={username}
                   onChange={e => setUsername(e.target.value)} className={inputCls} style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor='rgba(139,92,246,0.4)')}
-                  onBlur={e =>  (e.currentTarget.style.borderColor='rgba(255,255,255,0.08)')}
+                  onFocus={e => (e.currentTarget.style.borderColor = focusStyle)}
+                  onBlur={e =>  (e.currentTarget.style.borderColor = blurStyle)}
                   required />
               </>
             )}
 
             <input type="email" placeholder="Email address" value={email}
               onChange={e => setEmail(e.target.value)} className={inputCls} style={inputStyle}
-              onFocus={e => (e.currentTarget.style.borderColor='rgba(139,92,246,0.4)')}
-              onBlur={e =>  (e.currentTarget.style.borderColor='rgba(255,255,255,0.08)')}
+              onFocus={e => (e.currentTarget.style.borderColor = focusStyle)}
+              onBlur={e =>  (e.currentTarget.style.borderColor = blurStyle)}
               required />
 
             <div className="relative">
               <input type={showPass ? 'text' : 'password'} placeholder="Password" value={password}
                 onChange={e => setPassword(e.target.value)} className={inputCls} style={inputStyle}
-                onFocus={e => (e.currentTarget.style.borderColor='rgba(139,92,246,0.4)')}
-                onBlur={e =>  (e.currentTarget.style.borderColor='rgba(255,255,255,0.08)')}
+                onFocus={e => (e.currentTarget.style.borderColor = focusStyle)}
+                onBlur={e =>  (e.currentTarget.style.borderColor = blurStyle)}
                 required />
               <button type="button" onClick={() => setShowPass(!showPass)}
                 className="absolute right-3 top-3.5 text-white/30 hover:text-white/70 transition-colors">
@@ -188,14 +134,6 @@ export default function AuthPage() {
               {tab === 'signin' ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
-
-          {/* Email confirmation notice — shown when Supabase requires it */}
-          <div id="confirm-msg" style={{ display: 'none' }}
-            className="mt-4 text-sm text-emerald-400 bg-emerald-900/20 px-4 py-3 rounded-xl border border-emerald-800/30 text-center">
-            ✓ Account created! Check your email to confirm your account, then sign in.
-          </div>
-
-
 
           <p className="mt-6 text-center text-xs text-white/25">
             By continuing you agree to our{' '}
