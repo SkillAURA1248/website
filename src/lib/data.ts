@@ -402,6 +402,45 @@ export async function createSwapRequest(
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   SESSION & RATING
+───────────────────────────────────────────────────────────────────────────── */
+export async function markSessionDone(userId: string): Promise<boolean> {
+  const supabase = getClient()
+  if (!supabase) return false
+  // Increment sessions_completed for the target user
+  const { data: current } = await supabase
+    .from('users').select('sessions_completed').eq('id', userId).single()
+  if (!current) return false
+  const { error } = await supabase
+    .from('users')
+    .update({ sessions_completed: (current.sessions_completed ?? 0) + 1 })
+    .eq('id', userId)
+  return !error
+}
+
+export async function submitRating(
+  raterId: string,
+  targetUserId: string,
+  stars: number            // 1–5
+): Promise<boolean> {
+  const supabase = getClient()
+  if (!supabase) return false
+  // Recalculate running average: new_rating = (old_rating * review_count + stars) / (review_count + 1)
+  const { data: current } = await supabase
+    .from('users').select('rating, review_count').eq('id', targetUserId).single()
+  if (!current) return false
+  const oldRating      = Number(current.rating) || 0
+  const oldCount       = Number(current.review_count) || 0
+  const newCount       = oldCount + 1
+  const newRating      = Math.round(((oldRating * oldCount + stars) / newCount) * 100) / 100
+  const { error } = await supabase
+    .from('users')
+    .update({ rating: newRating, review_count: newCount })
+    .eq('id', targetUserId)
+  return !error
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    NOTIFICATIONS
 ───────────────────────────────────────────────────────────────────────────── */
 export async function getNotifications(userId: string): Promise<Notification[]> {

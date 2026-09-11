@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Search, Loader2 } from 'lucide-react'
+import { Send, Search, Loader2, CheckCircle2, Star, X } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useAuth } from '../lib/auth'
-import { getThreads, getMessages, sendMessage } from '../lib/data'
+import { getThreads, getMessages, sendMessage, markSessionDone, submitRating } from '../lib/data'
 import type { Thread, Message } from '../lib/types'
 
 const GRADIENTS = [
@@ -25,38 +25,55 @@ function timeAgo(iso: string) {
 
 export default function MessagesPage() {
   const { profile: me, profileId: myProfileId } = useAuth()
-  const [threads,       setThreads]       = useState<Thread[]>([])
-  const [activeThread,  setActiveThread]  = useState<Thread | null>(null)
-  const [messages,      setMessages]      = useState<Message[]>([])
-  const [input,         setInput]         = useState('')
-  const [search,        setSearch]        = useState('')
-  const [loadingThreads,setLoadingThreads]= useState(true)
-  const [loadingMsgs,   setLoadingMsgs]   = useState(false)
-  const [sending,       setSending]       = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [threads,        setThreads]        = useState<Thread[]>([])
+  const [activeThread,   setActiveThread]   = useState<Thread | null>(null)
+  const [messages,       setMessages]       = useState<Message[]>([])
+  const [input,          setInput]          = useState('')
+  const [search,         setSearch]         = useState('')
+  const [loadingThreads, setLoadingThreads] = useState(true)
+  const [loadingMsgs,    setLoadingMsgs]    = useState(false)
+  const [sending,        setSending]        = useState(false)
+
+  // Session done
+  const [sessionDone,    setSessionDone]    = useState(false)
+  const [sessionLoading, setSessionLoading] = useState(false)
+
+  // Rating modal
+  const [showRating,     setShowRating]     = useState(false)
+  const [hoverStar,      setHoverStar]      = useState(0)
+  const [selectedStar,   setSelectedStar]   = useState(0)
+  const [ratingLoading,  setRatingLoading]  = useState(false)
+  const [ratingDone,     setRatingDone]     = useState(false)
+
+  const bottomRef       = useRef<HTMLDivElement>(null)
   const activeThreadRef = useRef<Thread | null>(null)
 
-  // Keep ref in sync so intervals always see latest activeThread
+  // Reset session/rating state when active thread changes
+  useEffect(() => {
+    setSessionDone(false)
+    setShowRating(false)
+    setSelectedStar(0)
+    setHoverStar(0)
+    setRatingDone(false)
+  }, [activeThread?.id])
+
   useEffect(() => { activeThreadRef.current = activeThread }, [activeThread])
 
-  // Poll thread list every 10 seconds
+  // Poll thread list every 10 s
   const fetchThreads = useCallback(async () => {
     const t = await getThreads()
     setThreads(t)
     setLoadingThreads(false)
-    // Auto-select first thread on first load
-    if (t.length > 0 && !activeThreadRef.current) {
-      selectThread(t[0], false)
-    }
+    if (t.length > 0 && !activeThreadRef.current) selectThread(t[0], false)
   }, [])
 
   useEffect(() => {
     fetchThreads()
-    const interval = setInterval(fetchThreads, 10000)
-    return () => clearInterval(interval)
+    const iv = setInterval(fetchThreads, 10000)
+    return () => clearInterval(iv)
   }, [fetchThreads])
 
-  // Poll active thread messages every 3 seconds
+  // Poll messages every 3 s
   const fetchMessages = useCallback(async (threadId: string) => {
     const m = await getMessages(threadId)
     setMessages(m)
@@ -66,16 +83,15 @@ export default function MessagesPage() {
     if (!activeThread) return
     setLoadingMsgs(true)
     fetchMessages(activeThread.id).then(() => setLoadingMsgs(false))
-    const interval = setInterval(() => fetchMessages(activeThread.id), 3000)
-    return () => clearInterval(interval)
+    const iv = setInterval(() => fetchMessages(activeThread.id), 3000)
+    return () => clearInterval(iv)
   }, [activeThread?.id])
 
-  // Scroll to bottom when messages change
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
   const selectThread = (thread: Thread, _fromUser = true) => {
     setActiveThread(thread)
-    setMessages([]) // clear so loading spinner shows
+    setMessages([])
   }
 
   const handleSend = async () => {
@@ -94,6 +110,33 @@ export default function MessagesPage() {
   const otherUser = (thread: Thread) =>
     thread.participants.find(p => p.id !== myProfileId) ?? thread.participants[0]
 
+  const handleSessionDone = async () => {
+    if (!activeThread || !myProfileId) return
+    setSessionLoading(true)
+    const other = otherUser(activeThread)
+    if (other) {
+      // Increment sessions_completed for both participants
+      await Promise.all([
+        markSessionDone(other.id),
+        markSessionDone(myProfileId),
+      ])
+    }
+    setSessionLoading(false)
+    setSessionDone(true)
+    // Prompt rating after marking session done
+    setShowRating(true)
+  }
+
+  const handleSubmitRating = async () => {
+    if (!activeThread || !myProfileId || selectedStar === 0) return
+    setRatingLoading(true)
+    const other = otherUser(activeThread)
+    if (other) await submitRating(myProfileId, other.id, selectedStar)
+    setRatingLoading(false)
+    setRatingDone(true)
+    setTimeout(() => setShowRating(false), 1500)
+  }
+
   const filteredThreads = threads.filter(t => {
     if (!search) return true
     const other = otherUser(t)
@@ -103,7 +146,8 @@ export default function MessagesPage() {
   return (
     <Layout>
       <div className="flex h-[calc(100vh-3.5rem)]">
-        {/* Thread list */}
+
+        {/* ── Thread list ─────────────────────────────────────────── */}
         <div
           className={`${activeThread ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col border-r`}
           style={{ borderColor: 'rgba(255,255,255,0.06)', background: '#0C1017' }}
@@ -167,12 +211,13 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Chat panel */}
+        {/* ── Chat panel ──────────────────────────────────────────── */}
         {activeThread ? (
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 relative">
+
             {/* Chat header */}
-            <div className="h-14 px-4 flex items-center gap-3 border-b shrink-0"
-              style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <div className="px-4 flex items-center gap-3 border-b shrink-0"
+              style={{ borderColor: 'rgba(255,255,255,0.06)', minHeight: '3.5rem' }}>
               <button onClick={() => setActiveThread(null)} className="md:hidden text-white/40 hover:text-white mr-1">←</button>
               {(() => {
                 const other = otherUser(activeThread)
@@ -187,16 +232,128 @@ export default function MessagesPage() {
                         {(other?.displayName ?? '?').slice(0, 2).toUpperCase()}
                       </div>
                     )}
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-white">{other?.displayName}</div>
                       <div className="text-xs text-white/30">
                         {other?.status === 'online' ? '🟢 Online' : 'Offline'}
                       </div>
                     </div>
+
+                    {/* Session Done + Rate buttons */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!sessionDone ? (
+                        <button
+                          onClick={handleSessionDone}
+                          disabled={sessionLoading}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                          style={{
+                            background: 'rgba(16,185,129,0.12)',
+                            border: '1px solid rgba(16,185,129,0.3)',
+                            color: '#34d399',
+                          }}>
+                          {sessionLoading
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <CheckCircle2 size={13} />}
+                          Session Done
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                          <CheckCircle2 size={13} /> Done!
+                        </span>
+                      )}
+
+                      <button
+                        onClick={() => { setShowRating(true); setRatingDone(false) }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                        style={{
+                          background: 'rgba(251,191,36,0.1)',
+                          border: '1px solid rgba(251,191,36,0.25)',
+                          color: '#fbbf24',
+                        }}>
+                        <Star size={12} />
+                        Rate
+                      </button>
+                    </div>
                   </>
                 )
               })()}
             </div>
+
+            {/* Rating modal overlay */}
+            <AnimatePresence>
+              {showRating && (
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-20 flex items-center justify-center"
+                  style={{ background: 'rgba(7,9,13,0.75)', backdropFilter: 'blur(6px)' }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                    className="rounded-2xl p-6 w-80 relative"
+                    style={{ background: '#11151D', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    <button onClick={() => setShowRating(false)}
+                      className="absolute top-4 right-4 text-white/30 hover:text-white transition-colors">
+                      <X size={16} />
+                    </button>
+
+                    {ratingDone ? (
+                      <div className="flex flex-col items-center gap-3 py-4">
+                        <CheckCircle2 size={36} className="text-emerald-400" />
+                        <p className="text-white font-semibold">Rating submitted!</p>
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="text-base font-bold text-white mb-1">Rate this session</h3>
+                        <p className="text-xs text-white/40 mb-5">
+                          How was your swap with {otherUser(activeThread)?.displayName}?
+                        </p>
+
+                        {/* Stars */}
+                        <div className="flex justify-center gap-2 mb-6">
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <button
+                              key={n}
+                              onMouseEnter={() => setHoverStar(n)}
+                              onMouseLeave={() => setHoverStar(0)}
+                              onClick={() => setSelectedStar(n)}
+                              className="transition-transform hover:scale-110"
+                            >
+                              <Star
+                                size={32}
+                                className="transition-colors"
+                                style={{
+                                  color: n <= (hoverStar || selectedStar) ? '#fbbf24' : 'rgba(255,255,255,0.15)',
+                                  fill:  n <= (hoverStar || selectedStar) ? '#fbbf24' : 'transparent',
+                                }}
+                              />
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Labels */}
+                        <div className="flex justify-between text-xs text-white/30 mb-5 px-1">
+                          {['Poor', 'Fair', 'Good', 'Great', 'Amazing'].map((l, i) => (
+                            <span key={l} style={{ color: i + 1 === (hoverStar || selectedStar) ? '#fbbf24' : undefined }}>
+                              {l}
+                            </span>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={handleSubmitRating}
+                          disabled={selectedStar === 0 || ratingLoading}
+                          className="w-full py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
+                          style={{ background: '#8B5CF6', color: '#fff' }}
+                        >
+                          {ratingLoading ? <Loader2 size={15} className="animate-spin mx-auto" /> : 'Submit Rating'}
+                        </button>
+                      </>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
