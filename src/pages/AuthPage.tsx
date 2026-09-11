@@ -167,11 +167,7 @@ export default function AuthPage() {
             </Button>
           </form>
 
-          {!isSupabaseReady && (
-            <p className="mt-4 text-center text-xs text-amber-400/60 bg-amber-400/5 rounded-lg px-3 py-2 border border-amber-400/10">
-              Running in demo mode — add Supabase credentials to .env.local for real auth
-            </p>
-          )}
+
 
           <p className="mt-6 text-center text-xs text-white/25">
             By continuing you agree to our{' '}
