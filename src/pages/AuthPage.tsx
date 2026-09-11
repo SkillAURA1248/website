@@ -33,11 +33,11 @@ export default function AuthPage() {
       if (tab === 'signup') {
         const { user, error: err } = await signUp(email, password, name.trim(), username.trim())
         if (err)   { setError(err); return }
-        if (user)  navigate('/onboarding')
+        if (user) { window.location.href = '/onboarding'; return }
       } else {
         const { user, error: err } = await signIn(email, password)
         if (err)   { setError(err); return }
-        if (user)  navigate(from)
+        if (user) { window.location.href = from; return }
       }
     } catch (err: any) {
       setError(err?.message ?? 'Something went wrong. Please try again.')
@@ -153,3 +153,4 @@ export default function AuthPage() {
     </div>
   )
 }
+
