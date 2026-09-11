@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { Button } from '../components/ui/Button'
-import { signIn, signUp } from '../lib/auth'
+import { signIn, signUp, useAuth } from '../lib/auth'
 
 export default function AuthPage() {
   const [tab,       setTab]      = useState<'signin' | 'signup'>('signin')
@@ -16,6 +16,7 @@ export default function AuthPage() {
   const [error,     setError]    = useState<string | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
+  const { reload } = useAuth()
   const from = (location.state as any)?.from ?? '/discover'
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,11 +34,11 @@ export default function AuthPage() {
       if (tab === 'signup') {
         const { user, error: err } = await signUp(email, password, name.trim(), username.trim())
         if (err)   { setError(err); return }
-        if (user) { navigate('/onboarding'); return }
+        if (user) { await reload(); navigate('/onboarding'); return }
       } else {
         const { user, error: err } = await signIn(email, password)
         if (err)   { setError(err); return }
-        if (user) { navigate(from); return }
+        if (user) { await reload(); navigate(from); return }
       }
     } catch (err: any) {
       setError(err?.message ?? 'Something went wrong. Please try again.')
