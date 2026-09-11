@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, MessageCircle, MapPin, Star, Shield, Calendar, Clock, Loader2 } from 'lucide-react'
 import Layout from '../components/Layout'
@@ -21,14 +21,20 @@ const GRADIENTS = [
 export default function MatchPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile: me, profileId: myProfileId } = useAuth()
 
-  const [match,     setMatch]     = useState<Match | null>(null)
-  const [swapSent,  setSwapSent]  = useState(false)
+  // Use match passed via router state (from DiscoverPage) — avoids a second fetch
+  const stateMatch = (location.state as any)?.match as Match | undefined
+
+  const [match,       setMatch]       = useState<Match | null>(stateMatch ?? null)
+  const [swapSent,    setSwapSent]    = useState(false)
   const [swapLoading, setSwapLoading] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading,   setIsLoading]   = useState(!stateMatch)
 
   useEffect(() => {
+    // Only fetch from Supabase if we didn't get the match via router state
+    if (stateMatch) return
     if (!id) { setIsLoading(false); return }
     getMatchById(id).then(found => {
       setMatch(found)

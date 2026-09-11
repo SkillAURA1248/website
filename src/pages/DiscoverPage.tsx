@@ -24,7 +24,7 @@ function MatchCard({ match, delay = 0 }: { match: Match; delay?: number }) {
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay }}
       whileHover={{ y: -4 }}
-      onClick={() => navigate(`/match/${match.id}`)}
+      onClick={() => navigate(`/match/${match.id}`, { state: { match } })}
       className="cursor-pointer rounded-2xl p-5 border transition-all group"
       style={{ background: '#11151D', borderColor: 'rgba(255,255,255,0.06)' }}
       onMouseEnter={e => {
