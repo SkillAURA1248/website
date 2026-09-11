@@ -7,7 +7,7 @@ import { PerfectSwap } from '../components/ui/PerfectSwap'
 import { SkillPill } from '../components/ui/SkillPill'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../lib/auth'
-import { MOCK_MATCHES, createSwapRequest, getOrCreateThread } from '../lib/data'
+import { getMatchById, createSwapRequest, getOrCreateThread } from '../lib/data'
 import type { Match } from '../lib/types'
 
 const GRADIENTS = [
@@ -29,10 +29,11 @@ export default function MatchPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Find by id (mock-id or UUID)
-    const found = MOCK_MATCHES.find(m => m.id === id || m.id === `match-${id}` || m.userId === id)
-    setMatch(found ?? MOCK_MATCHES[0])
-    setIsLoading(false)
+    if (!id) { setIsLoading(false); return }
+    getMatchById(id).then(found => {
+      setMatch(found)
+      setIsLoading(false)
+    })
   }, [id])
 
   const handleProposeSwap = async () => {
@@ -52,7 +53,7 @@ export default function MatchPage() {
   const handleMessage = async () => {
     if (!match || !myProfileId) return
     const threadId = await getOrCreateThread(myProfileId, match.profile.id)
-    navigate('/messages')
+    if (threadId) navigate('/messages')
   }
 
   if (isLoading || !match) {
