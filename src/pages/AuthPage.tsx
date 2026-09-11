@@ -53,6 +53,16 @@ export default function AuthPage() {
         })
         if (authErr) throw authErr
 
+        // Check if email confirmation is required
+        if (!data.session) {
+          // Supabase requires email confirmation — show message instead of navigating
+          setError(null)
+          setLoading(false)
+          // Show confirmation message
+          ;(document.getElementById('confirm-msg') as HTMLElement).style.display = 'block'
+          return
+        }
+
         if (data.user) {
           try {
             await sb.from('profiles').insert({
@@ -87,8 +97,9 @@ export default function AuthPage() {
       } else {
         setError(msg)
       }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const inputCls = `w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none transition-all bg-[#0C1017]`
@@ -177,6 +188,12 @@ export default function AuthPage() {
               {tab === 'signin' ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
+
+          {/* Email confirmation notice — shown when Supabase requires it */}
+          <div id="confirm-msg" style={{ display: 'none' }}
+            className="mt-4 text-sm text-emerald-400 bg-emerald-900/20 px-4 py-3 rounded-xl border border-emerald-800/30 text-center">
+            ✓ Account created! Check your email to confirm your account, then sign in.
+          </div>
 
 
 
