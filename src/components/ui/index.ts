@@ -1,0 +1,11 @@
+// SkillSwap Design System — barrel export
+export * from './Button'
+export * from './Card'
+export * from './FormInput'
+export * from './LockedFeature'
+export * from './Navigation'
+export * from './PerfectSwap'
+export * from './SkillDNA'
+export * from './SkillPill'
+export * from './StatusBadge'
+export * from './Typography'
