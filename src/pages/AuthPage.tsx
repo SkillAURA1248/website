@@ -61,12 +61,7 @@ export default function AuthPage() {
         {/* Logo */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-center gap-2.5 mb-8">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <circle cx="8"  cy="10" r="3.5" fill="#8B5CF6" fillOpacity="0.9" />
-            <circle cx="16" cy="10" r="3.5" fill="#FBBF24" fillOpacity="0.9" />
-            <path d="M11 10 L13 10" stroke="#8B5CF6" strokeWidth="1.5" strokeDasharray="1.5 1.5" />
-            <circle cx="12" cy="16" r="2" fill="#ffffff" fillOpacity="0.25" />
-          </svg>
+          <img src="/logo.jpeg" alt="SkillSwap" className="w-8 h-8 rounded-lg object-contain" />
           <span className="text-2xl font-bold text-white">Skill<span className="text-purple-400">Swap</span></span>
         </motion.div>
 

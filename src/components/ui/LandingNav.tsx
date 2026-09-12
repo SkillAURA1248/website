@@ -149,14 +149,7 @@ export function LandingNav() {
 
 /* ── Icon primitives ──────────────────────────────────────────────────────── */
 function LogoMark() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="8"  cy="10" r="3.5" fill="#8B5CF6" fillOpacity="0.9" />
-      <circle cx="16" cy="10" r="3.5" fill="#FBBF24" fillOpacity="0.9" />
-      <path d="M11 10 L13 10" stroke="#8B5CF6" strokeWidth="1.5" strokeDasharray="1.5 1.5" />
-      <circle cx="12" cy="16" r="2"  fill="#ffffff"  fillOpacity="0.25" />
-    </svg>
-  )
+  return <img src="/logo.jpeg" alt="SkillSwap" className="w-6 h-6 rounded-md object-contain" aria-hidden="true" />
 }
 function MenuIcon() {
   return (
