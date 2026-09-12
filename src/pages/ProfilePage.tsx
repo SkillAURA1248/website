@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { MapPin, Star, Shield, Calendar, MessageCircle, Edit2, Check, Loader2 } from 'lucide-react'
+import { MapPin, Star, Shield, Calendar, MessageCircle, Edit2, Check, Loader2, LogOut } from 'lucide-react'
 import Layout from '../components/Layout'
 import { SkillPill } from '../components/ui/SkillPill'
 import { Button } from '../components/ui/Button'
@@ -22,7 +22,7 @@ const GRADIENTS = [
 export default function ProfilePage() {
   const { id } = useParams<{ id?: string }>()
   const navigate = useNavigate()
-  const { profile: myProfile, profileId: myProfileId } = useAuth()
+  const { profile: myProfile, profileId: myProfileId, signOut } = useAuth()
 
   const [profile,     setProfile]     = useState<UserProfile | null>(null)
   const [isOwn,       setIsOwn]       = useState(false)
@@ -161,9 +161,18 @@ export default function ProfilePage() {
             {/* Actions */}
             <div className="flex gap-3 shrink-0">
               {isOwn ? (
-                <Button variant="secondary" onClick={() => navigate('/settings')} iconLeft={<Edit2 size={14} />}>
-                  Edit Profile
-                </Button>
+                <>
+                  <Button variant="secondary" onClick={() => navigate('/settings')} iconLeft={<Edit2 size={14} />}>
+                    Edit Profile
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => { signOut(); navigate('/') }}
+                    iconLeft={<LogOut size={14} />}
+                  >
+                    Log Out
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button variant="secondary" onClick={() => navigate('/messages')} iconLeft={<MessageCircle size={14} />}>
