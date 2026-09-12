@@ -37,9 +37,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="max-w-7xl mx-auto h-full px-4 md:px-6 flex items-center justify-between gap-6">
           {/* Logo */}
           <button onClick={() => navigate('/')} className="flex items-center gap-2.5 shrink-0">
-            <img src="/logo.jpeg" alt="SkillSwap" className="w-8 h-8 rounded-lg object-contain" />
+            <img src="/logo.jpeg" alt="SkillAURA" className="w-8 h-8 rounded-lg object-contain" />
             <span className="text-base font-bold tracking-tight text-white">
-              Skill<span className="text-purple-400">Swap</span>
+              Skill<span className="text-purple-400">AURA</span>
             </span>
           </button>
 

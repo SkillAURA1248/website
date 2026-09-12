@@ -39,7 +39,7 @@ export function LandingNav() {
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
           <LogoMark />
           <span className="text-base font-bold tracking-tight text-text-primary">
-            Skill<span className="text-purple-400">Swap</span>
+            Skill<span className="text-purple-400">AURA</span>
           </span>
         </Link>
 
@@ -149,7 +149,7 @@ export function LandingNav() {
 
 /* ── Icon primitives ──────────────────────────────────────────────────────── */
 function LogoMark() {
-  return <img src="/logo.jpeg" alt="SkillSwap" className="w-6 h-6 rounded-md object-contain" aria-hidden="true" />
+  return <img src="/logo.jpeg" alt="SkillAURA" className="w-6 h-6 rounded-md object-contain" aria-hidden="true" />
 }
 function MenuIcon() {
   return (

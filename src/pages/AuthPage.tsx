@@ -61,8 +61,8 @@ export default function AuthPage() {
         {/* Logo */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-center gap-2.5 mb-8">
-          <img src="/logo.jpeg" alt="SkillSwap" className="w-8 h-8 rounded-lg object-contain" />
-          <span className="text-2xl font-bold text-white">Skill<span className="text-purple-400">Swap</span></span>
+          <img src="/logo.jpeg" alt="SkillAURA" className="w-8 h-8 rounded-lg object-contain" />
+          <span className="text-2xl font-bold text-white">Skill<span className="text-purple-400">AURA</span></span>
         </motion.div>
 
         {/* Card */}

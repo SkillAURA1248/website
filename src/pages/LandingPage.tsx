@@ -917,7 +917,7 @@ function Footer() {
             <div className="flex items-center gap-2.5">
               <LogoMarkSmall />
               <span className="text-sm font-bold text-text-primary">
-                Skill<span className="text-purple-400">Swap</span>
+                Skill<span className="text-purple-400">AURA</span>
               </span>
             </div>
             <p className="text-xs text-text-muted italic">"Knowledge is better when shared."</p>
@@ -938,7 +938,7 @@ function Footer() {
 
           {/* Copyright */}
           <p className="text-xs text-text-muted">
-            © {new Date().getFullYear()} SkillSwap
+            © {new Date().getFullYear()} SkillAURA
           </p>
         </div>
       </div>
@@ -1113,5 +1113,5 @@ function ChevronDownIcon() {
   )
 }
 function LogoMarkSmall() {
-  return <img src="/logo.jpeg" alt="SkillSwap" className="w-5 h-5 rounded-md object-contain" aria-hidden="true" />
+  return <img src="/logo.jpeg" alt="SkillAURA" className="w-5 h-5 rounded-md object-contain" aria-hidden="true" />
 }

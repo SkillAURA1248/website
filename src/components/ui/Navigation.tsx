@@ -35,7 +35,7 @@ export function Navigation({ activeLink = '#discover', onLinkClick }: Navigation
         <a href="#" className="flex items-center gap-2.5 shrink-0 group">
           <LogoMark />
           <span className="text-base font-bold tracking-tight text-text-primary">
-            Skill<span className="text-purple-400">Swap</span>
+            Skill<span className="text-purple-400">AURA</span>
           </span>
         </a>
 
@@ -161,7 +161,7 @@ export function Navigation({ activeLink = '#discover', onLinkClick }: Navigation
 
 /* ── Icon primitives ──────────────────────────────────────────────────────── */
 function LogoMark() {
-  return <img src="/logo.jpeg" alt="SkillSwap" className="w-6 h-6 rounded-md object-contain" aria-hidden="true" />
+  return <img src="/logo.jpeg" alt="SkillAURA" className="w-6 h-6 rounded-md object-contain" aria-hidden="true" />
 }
 
 function BellIcon() {

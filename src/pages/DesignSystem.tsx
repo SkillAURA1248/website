@@ -137,14 +137,14 @@ export default function DesignSystem() {
             </span>
 
             <Heading level="display" gradient className="mb-5">
-              SkillSwap
+              SkillAURA
               <br />
               Design Language
             </Heading>
 
             <Text variant="lead" className="max-w-lg mx-auto mb-8">
               A premium dark-mode visual system for the{' '}
-              <Highlight color="purple">SkillSwap</Highlight> platform —
+              <Highlight color="purple">SkillAURA</Highlight> platform —
               every token, component, and pattern in one place.
             </Text>
 
@@ -261,7 +261,7 @@ export default function DesignSystem() {
               <div className="space-y-4">
                 <Text variant="label" className="block">Body & UI Text</Text>
                 <Text variant="lead">
-                  Lead — Share what you know, learn what you don't. SkillSwap connects people through knowledge exchange.
+                  Lead — Share what you know, learn what you don't. SkillAURA connects people through knowledge exchange.
                 </Text>
                 <Text variant="body">
                   Body — Discover people whose skills complement yours. Every swap is a session where real knowledge changes hands.
@@ -536,7 +536,7 @@ export default function DesignSystem() {
               <Input
                 label="Email"
                 type="email"
-                placeholder="hello@skillswap.app"
+                placeholder="hello@SkillAURA.app"
                 iconLeft={<MailIcon />}
               />
               <Input
@@ -674,7 +674,7 @@ export default function DesignSystem() {
               />
               <LockedFeature
                 title="Skill Marketplace"
-                description="Offer skill packs and mini-courses to the wider SkillSwap community."
+                description="Offer skill packs and mini-courses to the wider SkillAURA community."
                 phase={8}
                 icon="🏪"
               />
@@ -783,7 +783,7 @@ export default function DesignSystem() {
           style={{ borderColor: 'rgba(255,255,255,0.06)' }}
         >
           <Text variant="muted">
-            SkillSwap Design System · Built with React, Vite, Tailwind CSS, Framer Motion
+            SkillAURA Design System · Built with React, Vite, Tailwind CSS, Framer Motion
           </Text>
           <Text variant="muted" className="mt-1 text-xs">
             Plus Jakarta Sans · Dark mode only · All design tokens in{' '}

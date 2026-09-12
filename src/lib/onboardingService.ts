@@ -1,5 +1,5 @@
 /**
- * SkillSwap — Onboarding Service
+ * SkillAURA — Onboarding Service
  * Saves skills to Supabase users table (no Supabase Auth).
  */
 import { createClient } from '@supabase/supabase-js'
@@ -13,8 +13,8 @@ export interface OnboardingProfile {
   completedAt: string
 }
 
-const STORAGE_KEY  = 'skillswap_onboarding_v1'
-const SESSION_KEY  = 'skillswap_user_id'
+const STORAGE_KEY  = 'SkillAURA_onboarding_v1'
+const SESSION_KEY  = 'SkillAURA_user_id'
 
 /** Always returns a live client — reads env vars at call time */
 function getClient() {

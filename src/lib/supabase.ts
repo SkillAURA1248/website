@@ -1,5 +1,5 @@
 /**
- * SkillSwap — Supabase Client (typed)
+ * SkillAURA — Supabase Client (typed)
  * Reads VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY from .env.local
  * Falls back gracefully to null when env vars are empty.
  */

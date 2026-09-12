@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────────
-   SkillSwap — Domain Types
+   SkillAURA — Domain Types
 ───────────────────────────────────────────────────────────────────────────── */
 
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert'

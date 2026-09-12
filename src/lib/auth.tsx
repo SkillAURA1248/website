@@ -1,14 +1,14 @@
 /**
- * SkillSwap — Auth (no Supabase Auth)
+ * SkillAURA — Auth (no Supabase Auth)
  * Users stored in public.users table.
- * Session = localStorage 'skillswap_user_id'.
+ * Session = localStorage 'SkillAURA_user_id'.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { supabase as _supabase } from './supabase'
 import type { UserProfile, UserSkill } from './types'
 
-const SESSION_KEY = 'skillswap_user_id'
+const SESSION_KEY = 'SkillAURA_user_id'
 
 /** Always returns a live client — reads env vars at call time, not module init */
 function getClient() {

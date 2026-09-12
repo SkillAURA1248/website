@@ -819,7 +819,7 @@ function FinalScreen({
             </>
           ) : (
             <>
-              Enter SkillSwap
+              Enter SkillAURA
               <ArrowRightIcon />
             </>
           )}
@@ -925,10 +925,10 @@ export default function OnboardingPage() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="relative z-10 flex items-center justify-between px-6 md:px-10 py-5">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2.5" aria-label="SkillSwap home">
+        <a href="/" className="flex items-center gap-2.5" aria-label="SkillAURA home">
           <LogoMark />
           <span className="text-sm font-bold tracking-tight text-text-primary">
-            Skill<span className="text-purple-400">Swap</span>
+            Skill<span className="text-purple-400">AURA</span>
           </span>
         </a>
 
@@ -1089,7 +1089,7 @@ export default function OnboardingPage() {
                     Saving…
                   </>
                 ) : step === TOTAL_STEPS ? (
-                  <>Enter SkillSwap <ArrowRightIcon /></>
+                  <>Enter SkillAURA <ArrowRightIcon /></>
                 ) : (
                   <>Continue <ArrowRightIcon /></>
                 )}
@@ -1131,5 +1131,5 @@ function ChevronLeftIcon() {
 }
 
 function LogoMark() {
-  return <img src="/logo.jpeg" alt="SkillSwap" className="w-6 h-6 rounded-md object-contain" aria-hidden="true" />
+  return <img src="/logo.jpeg" alt="SkillAURA" className="w-6 h-6 rounded-md object-contain" aria-hidden="true" />
 }

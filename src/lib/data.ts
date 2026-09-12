@@ -1,7 +1,7 @@
 /**
- * SkillSwap — Data Layer
+ * SkillAURA — Data Layer
  * Uses public.users table (no Supabase Auth).
- * Session = localStorage key 'skillswap_user_id'.
+ * Session = localStorage key 'SkillAURA_user_id'.
  * All functions return empty / null when Supabase is not available.
  */
 import { supabase as _supabase } from './supabase'
@@ -25,7 +25,7 @@ import type {
   Message, Thread, Notification, SkillLevel, UserSkill, PrivacySettings
 } from './types'
 
-const SESSION_KEY = 'skillswap_user_id'
+const SESSION_KEY = 'SkillAURA_user_id'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    TRANSFORM HELPERS
