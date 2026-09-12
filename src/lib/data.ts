@@ -22,7 +22,7 @@ function getClient() {
 
 import type {
   UserProfile, Skill, Match,
-  Message, Thread, Notification, SkillLevel, UserSkill
+  Message, Thread, Notification, SkillLevel, UserSkill, PrivacySettings
 } from './types'
 
 const SESSION_KEY = 'skillswap_user_id'
@@ -494,6 +494,49 @@ export async function submitRating(
     .from('users')
     .update({ rating: newRating, review_count: newCount })
     .eq('id', targetUserId)
+  return !error
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PRIVACY SETTINGS
+───────────────────────────────────────────────────────────────────────────── */
+export async function getPrivacySettings(): Promise<PrivacySettings> {
+  const defaults: PrivacySettings = {
+    showLocation: true, showSkillDna: true,
+    showOnlineStatus: true, allowDirectMessages: true,
+  }
+  const supabase = getClient()
+  if (!supabase) return defaults
+  const id = getStoredUserId()
+  if (!id) return defaults
+  const { data, error } = await supabase
+    .from('users')
+    .select('show_location, show_skill_dna, show_online_status, allow_direct_messages')
+    .eq('id', id)
+    .single()
+  if (error || !data) return defaults
+  return {
+    showLocation:        data.show_location        ?? true,
+    showSkillDna:        data.show_skill_dna        ?? true,
+    showOnlineStatus:    data.show_online_status    ?? true,
+    allowDirectMessages: data.allow_direct_messages ?? true,
+  }
+}
+
+export async function savePrivacySettings(settings: PrivacySettings): Promise<boolean> {
+  const supabase = getClient()
+  if (!supabase) return false
+  const id = getStoredUserId()
+  if (!id) return false
+  const { error } = await supabase
+    .from('users')
+    .update({
+      show_location:         settings.showLocation,
+      show_skill_dna:        settings.showSkillDna,
+      show_online_status:    settings.showOnlineStatus,
+      allow_direct_messages: settings.allowDirectMessages,
+    })
+    .eq('id', id)
   return !error
 }
 

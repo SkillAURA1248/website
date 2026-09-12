@@ -126,6 +126,14 @@ export interface Notification {
   createdAt: string
 }
 
+/* ── Privacy Settings ────────────────────────────────────────────────────── */
+export interface PrivacySettings {
+  showLocation:        boolean
+  showSkillDna:        boolean
+  showOnlineStatus:    boolean
+  allowDirectMessages: boolean
+}
+
 /* ── Auth ────────────────────────────────────────────────────────────────── */
 export interface AuthUser {
   id:    string

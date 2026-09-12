@@ -5,8 +5,8 @@ import Layout from '../components/Layout'
 import { SkillPill } from '../components/ui/SkillPill'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../lib/auth'
-import { getAllSkills, upsertUserSkills, updateProfile } from '../lib/data'
-import type { Skill, SkillLevel } from '../lib/types'
+import { getAllSkills, upsertUserSkills, updateProfile, getPrivacySettings, savePrivacySettings } from '../lib/data'
+import type { Skill, SkillLevel, PrivacySettings } from '../lib/types'
 
 const LEVELS: { value: SkillLevel; label: string; icon: string }[] = [
   { value: 'beginner',     label: 'Beginner',     icon: '🌱' },
@@ -34,8 +34,14 @@ export default function SettingsPage() {
   const [notifs,      setNotifs]     = useState({
     newMatch: true, messages: true, swapRequests: true, sessionReminders: true, weeklyDigest: false,
   })
+  const [privacy,     setPrivacy]    = useState<PrivacySettings>({
+    showLocation: true, showSkillDna: true, showOnlineStatus: true, allowDirectMessages: true,
+  })
+  const [privacySaving, setPrivacySaving] = useState(false)
+  const [privacySaved,  setPrivacySaved]  = useState(false)
 
   useEffect(() => { getAllSkills().then(setAllSkills) }, [])
+  useEffect(() => { getPrivacySettings().then(setPrivacy) }, [])
 
   useEffect(() => {
     if (profile) {
@@ -284,17 +290,36 @@ export default function SettingsPage() {
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                 <div className="rounded-2xl p-6 border space-y-5" style={{ background: '#11151D', borderColor: 'rgba(255,255,255,0.06)' }}>
                   <h2 className="font-bold text-white">Privacy & Security</h2>
-                  {['Show my location publicly','Allow others to see my Skill DNA','Show online status','Allow direct messages from anyone'].map((label, i) => (
-                    <div key={label} className="flex items-center justify-between">
+                  {([
+                    { key: 'showLocation',        label: 'Show my location publicly' },
+                    { key: 'showSkillDna',         label: 'Allow others to see my Skill DNA' },
+                    { key: 'showOnlineStatus',     label: 'Show online status' },
+                    { key: 'allowDirectMessages',  label: 'Allow direct messages from anyone' },
+                  ] as { key: keyof PrivacySettings; label: string }[]).map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between">
                       <span className="text-sm text-white/70">{label}</span>
-                      <button className="relative w-11 h-6 rounded-full transition-all duration-200"
-                        style={{ background: i % 2 === 0 ? '#8B5CF6' : 'rgba(255,255,255,0.1)' }}>
+                      <button
+                        onClick={() => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }))}
+                        className="relative w-11 h-6 rounded-full transition-all duration-200"
+                        style={{ background: privacy[key] ? '#8B5CF6' : 'rgba(255,255,255,0.1)' }}>
                         <span className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-200"
-                          style={{ left: i % 2 === 0 ? '1.5rem' : '0.25rem' }} />
+                          style={{ left: privacy[key] ? '1.5rem' : '0.25rem' }} />
                       </button>
                     </div>
                   ))}
                 </div>
+
+                <Button variant="primary" onClick={async () => {
+                  setPrivacySaving(true)
+                  await savePrivacySettings(privacy)
+                  setPrivacySaving(false)
+                  setPrivacySaved(true)
+                  setTimeout(() => setPrivacySaved(false), 2000)
+                }} loading={privacySaving}
+                  iconLeft={privacySaved && !privacySaving ? <Check size={14} /> : undefined}>
+                  {privacySaved ? 'Saved!' : 'Save Privacy Settings'}
+                </Button>
+
                 <div className="rounded-2xl p-6 border" style={{ background: '#11151D', borderColor: 'rgba(239,68,68,0.15)' }}>
                   <h3 className="font-bold text-white mb-4">Danger Zone</h3>
                   <button className="w-full py-2.5 rounded-xl text-sm font-medium text-red-400 border border-red-400/20 hover:bg-red-400/10 transition-all">
