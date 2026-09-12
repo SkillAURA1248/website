@@ -3,7 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Search, Loader2, CheckCircle2, Star, X } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useAuth } from '../lib/auth'
-import { getThreads, getMessages, sendMessage, markSessionDone, submitRating } from '../lib/data'
+import {
+  getThreads, getMessages, sendMessage,
+  markSessionDone, submitRating,
+  hasMarkedSessionDone, hasRatedInThread,
+} from '../lib/data'
 import type { Thread, Message } from '../lib/types'
 
 const GRADIENTS = [
@@ -50,11 +54,16 @@ export default function MessagesPage() {
 
   // Reset session/rating state when active thread changes
   useEffect(() => {
+    if (!activeThread) return
     setSessionDone(false)
     setShowRating(false)
     setSelectedStar(0)
     setHoverStar(0)
     setRatingDone(false)
+
+    // Load persisted state from DB
+    hasMarkedSessionDone(activeThread.id).then(setSessionDone)
+    hasRatedInThread(activeThread.id).then(setRatingDone)
   }, [activeThread?.id])
 
   useEffect(() => { activeThreadRef.current = activeThread }, [activeThread])
@@ -115,15 +124,10 @@ export default function MessagesPage() {
     setSessionLoading(true)
     const other = otherUser(activeThread)
     if (other) {
-      // Increment sessions_completed for both participants
-      await Promise.all([
-        markSessionDone(other.id),
-        markSessionDone(myProfileId),
-      ])
+      await markSessionDone(activeThread.id, other.id)
     }
     setSessionLoading(false)
     setSessionDone(true)
-    // Prompt rating after marking session done
     setShowRating(true)
   }
 
@@ -131,7 +135,7 @@ export default function MessagesPage() {
     if (!activeThread || !myProfileId || selectedStar === 0) return
     setRatingLoading(true)
     const other = otherUser(activeThread)
-    if (other) await submitRating(myProfileId, other.id, selectedStar)
+    if (other) await submitRating(activeThread.id, other.id, selectedStar)
     setRatingLoading(false)
     setRatingDone(true)
     setTimeout(() => setShowRating(false), 1500)
@@ -262,17 +266,23 @@ export default function MessagesPage() {
                         </span>
                       )}
 
-                      <button
-                        onClick={() => { setShowRating(true); setRatingDone(false) }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                        style={{
-                          background: 'rgba(251,191,36,0.1)',
-                          border: '1px solid rgba(251,191,36,0.25)',
-                          color: '#fbbf24',
-                        }}>
-                        <Star size={12} />
-                        Rate
-                      </button>
+                      {!ratingDone ? (
+                        <button
+                          onClick={() => { setShowRating(true) }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                          style={{
+                            background: 'rgba(251,191,36,0.1)',
+                            border: '1px solid rgba(251,191,36,0.25)',
+                            color: '#fbbf24',
+                          }}>
+                          <Star size={12} />
+                          Rate
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-400">
+                          <Star size={12} className="fill-amber-400" /> Rated!
+                        </span>
+                      )}
                     </div>
                   </>
                 )

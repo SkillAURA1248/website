@@ -404,35 +404,92 @@ export async function createSwapRequest(
 /* ─────────────────────────────────────────────────────────────────────────────
    SESSION & RATING
 ───────────────────────────────────────────────────────────────────────────── */
-export async function markSessionDone(userId: string): Promise<boolean> {
+
+/** Returns whether the current user has already marked this thread as done */
+export async function hasMarkedSessionDone(threadId: string): Promise<boolean> {
   const supabase = getClient()
   if (!supabase) return false
-  // Increment sessions_completed for the target user
-  const { data: current } = await supabase
-    .from('users').select('sessions_completed').eq('id', userId).single()
-  if (!current) return false
-  const { error } = await supabase
-    .from('users')
-    .update({ sessions_completed: (current.sessions_completed ?? 0) + 1 })
-    .eq('id', userId)
-  return !error
+  const myId = getStoredUserId()
+  if (!myId) return false
+  const { data } = await supabase
+    .from('session_completions')
+    .select('id')
+    .eq('thread_id', threadId)
+    .eq('marked_by', myId)
+    .maybeSingle()
+  return !!data
+}
+
+/** Returns whether the current user has already rated someone in this thread */
+export async function hasRatedInThread(threadId: string): Promise<boolean> {
+  const supabase = getClient()
+  if (!supabase) return false
+  const myId = getStoredUserId()
+  if (!myId) return false
+  const { data } = await supabase
+    .from('session_reviews')
+    .select('id')
+    .eq('thread_id', threadId)
+    .eq('rater_id', myId)
+    .maybeSingle()
+  return !!data
+}
+
+export async function markSessionDone(threadId: string, otherUserId: string): Promise<boolean> {
+  const supabase = getClient()
+  if (!supabase) return false
+  const myId = getStoredUserId()
+  if (!myId) return false
+
+  // Prevent duplicate — check first
+  const already = await hasMarkedSessionDone(threadId)
+  if (already) return true
+
+  // Record the completion
+  await supabase.from('session_completions').insert({ thread_id: threadId, marked_by: myId })
+
+  // Increment sessions_completed for both participants
+  for (const userId of [myId, otherUserId]) {
+    const { data: current } = await supabase
+      .from('users').select('sessions_completed').eq('id', userId).single()
+    if (current) {
+      await supabase
+        .from('users')
+        .update({ sessions_completed: (current.sessions_completed ?? 0) + 1 })
+        .eq('id', userId)
+    }
+  }
+  return true
 }
 
 export async function submitRating(
-  raterId: string,
+  threadId: string,
   targetUserId: string,
   stars: number            // 1–5
 ): Promise<boolean> {
   const supabase = getClient()
   if (!supabase) return false
-  // Recalculate running average: new_rating = (old_rating * review_count + stars) / (review_count + 1)
+  const myId = getStoredUserId()
+  if (!myId) return false
+
+  // Prevent duplicate rating in this thread
+  const already = await hasRatedInThread(threadId)
+  if (already) return true
+
+  // Record the review
+  const { error: reviewError } = await supabase
+    .from('session_reviews')
+    .insert({ rater_id: myId, rated_id: targetUserId, thread_id: threadId, stars })
+  if (reviewError) return false
+
+  // Recalculate running average
   const { data: current } = await supabase
     .from('users').select('rating, review_count').eq('id', targetUserId).single()
   if (!current) return false
-  const oldRating      = Number(current.rating) || 0
-  const oldCount       = Number(current.review_count) || 0
-  const newCount       = oldCount + 1
-  const newRating      = Math.round(((oldRating * oldCount + stars) / newCount) * 100) / 100
+  const oldRating  = Number(current.rating) || 0
+  const oldCount   = Number(current.review_count) || 0
+  const newCount   = oldCount + 1
+  const newRating  = Math.round(((oldRating * oldCount + stars) / newCount) * 100) / 100
   const { error } = await supabase
     .from('users')
     .update({ rating: newRating, review_count: newCount })
