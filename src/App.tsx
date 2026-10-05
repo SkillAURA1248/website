@@ -13,6 +13,8 @@ import ProfilePage    from './pages/ProfilePage'
 import SettingsPage   from './pages/SettingsPage'
 import DesignSystem   from './pages/DesignSystem'
 import NotFoundPage   from './pages/NotFoundPage'
+import TermsPage      from './pages/TermsPage'
+import PrivacyPage    from './pages/PrivacyPage'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null }
@@ -90,6 +92,10 @@ export default function App() {
             {/* Dev */}
             <Route path="/design-system" element={<DesignSystem />} />
 
+            {/* Legal */}
+            <Route path="/terms"          element={<TermsPage />} />
+            <Route path="/privacy"        element={<PrivacyPage />} />
+
             {/* 404 */}
             <Route path="*"              element={<NotFoundPage />} />
           </Routes>
@@ -98,4 +104,5 @@ export default function App() {
     </BrowserRouter>
   )
 }
+
 
