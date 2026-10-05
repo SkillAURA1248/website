@@ -966,25 +966,7 @@ export default function LandingPage() {
 
         <div className="relative z-10 w-full flex flex-col items-center gap-10 max-w-5xl mx-auto">
 
-          {/* Eyebrow tag */}
-          <motion.div {...fadeUp(0.1)}>
-            <span
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
-              style={{
-                background: 'rgba(139,92,246,0.12)',
-                border: '1px solid rgba(139,92,246,0.28)',
-                color: '#C9AAFF',
-              }}
-            >
-              <motion.span
-                className="w-1.5 h-1.5 rounded-full bg-purple-400"
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.8, repeat: Infinity }}
-                aria-hidden="true"
-              />
-              Now in Beta — Join the community
-            </span>
-          </motion.div>
+
 
           {/* Headline */}
           <motion.div {...fadeUp(0.2)} className="text-center">
