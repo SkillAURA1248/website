@@ -68,7 +68,7 @@ export default function TermsPage() {
             <span className="text-lg font-bold text-white">Skill<span className="text-purple-400">Swap</span></span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Terms and Conditions</h1>
-          <p className="text-white/40 text-sm">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-white/40 text-sm">Last updated: October 1, 2025</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className="rounded-2xl p-6 border mb-6"
@@ -102,4 +102,5 @@ export default function TermsPage() {
     </div>
   )
 }
+
 
