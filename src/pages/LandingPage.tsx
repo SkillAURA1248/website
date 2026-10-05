@@ -959,7 +959,7 @@ export default function LandingPage() {
       {/* ── HERO ───────────────────────────────────────────────────────── */}
       <section
         className="relative min-h-screen flex flex-col items-center justify-center
-                   pt-14 pb-16 px-4 md:px-6 lg:px-8 overflow-hidden"
+                   pt-28 pb-16 px-4 md:px-6 lg:px-8 overflow-hidden"
         aria-label="Hero"
       >
         <HeroBackground />
