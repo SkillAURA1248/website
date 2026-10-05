@@ -133,8 +133,8 @@ export default function AuthPage() {
 
           <p className="mt-6 text-center text-xs text-white/25">
             By continuing you agree to our{' '}
-            <a href="#" className="text-purple-400 hover:text-purple-300">Terms</a> &{' '}
-            <a href="#" className="text-purple-400 hover:text-purple-300">Privacy Policy</a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline underline-offset-2">Terms</a> &{' '}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline underline-offset-2">Privacy Policy</a>
           </p>
         </motion.div>
 
