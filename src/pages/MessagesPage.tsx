@@ -384,7 +384,7 @@ export default function MessagesPage() {
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, delay: i * 0.02 }}
                         className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                        <div className="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
+                        <div className="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words whitespace-pre-wrap"
                           style={isMine
                             ? { background: '#8B5CF6', color: '#fff', borderBottomRightRadius: 4 }
                             : { background: '#151A24', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.06)', borderBottomLeftRadius: 4 }
@@ -428,3 +428,4 @@ export default function MessagesPage() {
     </Layout>
   )
 }
+
