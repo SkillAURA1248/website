@@ -995,6 +995,7 @@ export default function LandingPage() {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
+              paddingBottom: '0.2em',
               }}
             >
               Don't Buy a Skill.
@@ -1006,6 +1007,7 @@ export default function LandingPage() {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
+              paddingBottom: '0.2em',
               }}
             >
               Swap One.
@@ -1115,5 +1117,6 @@ function ChevronDownIcon() {
 function LogoMarkSmall() {
   return <img src="/logo.jpeg" alt="SkillAURA" className="w-5 h-5 rounded-md object-contain" aria-hidden="true" />
 }
+
 
 
