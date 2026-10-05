@@ -989,7 +989,7 @@ export default function LandingPage() {
           {/* Headline */}
           <motion.div {...fadeUp(0.2)} className="text-center">
             <h1
-              className="text-[clamp(3rem,10vw,7rem)] font-extrabold leading-none tracking-tight"
+              className="text-[clamp(3rem,10vw,7rem)] font-extrabold leading-[1.05] tracking-tight pb-1"
               style={{
                 background: 'linear-gradient(160deg, #F4F6FA 0%, #F4F6FA 40%, rgba(244,246,250,0.7) 100%)',
                 WebkitBackgroundClip: 'text',
@@ -1000,7 +1000,7 @@ export default function LandingPage() {
               Don't Buy a Skill.
             </h1>
             <h1
-              className="text-[clamp(3rem,10vw,7rem)] font-extrabold leading-none tracking-tight mt-1"
+              className="text-[clamp(3rem,10vw,7rem)] font-extrabold leading-[1.05] tracking-tight mt-1 pb-1"
               style={{
                 background: 'linear-gradient(135deg, #C9AAFF 0%, #8B5CF6 50%, #FBBF24 100%)',
                 WebkitBackgroundClip: 'text',
@@ -1115,3 +1115,5 @@ function ChevronDownIcon() {
 function LogoMarkSmall() {
   return <img src="/logo.jpeg" alt="SkillAURA" className="w-5 h-5 rounded-md object-contain" aria-hidden="true" />
 }
+
+
