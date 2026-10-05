@@ -213,7 +213,7 @@ export default function MatchPage() {
           </div>
         {/* Action buttons — always visible below the grid */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="flex gap-3 mt-2 max-w-sm">
+          className="flex flex-col gap-3 mt-2 max-w-sm">
           <Button variant="secondary" fullWidth onClick={handleMessage} iconLeft={<MessageCircle size={15} />}>
             Message
           </Button>
@@ -227,4 +227,5 @@ export default function MatchPage() {
     </Layout>
   )
 }
+
 
