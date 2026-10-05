@@ -232,7 +232,7 @@ export async function getMatches(): Promise<Match[]> {
       )
       return { profile, sharedTeach, sharedLearn, matchScore }
     })
-    .filter(m => m.sharedTeach.length > 0 || m.sharedLearn.length > 0)
+    .filter(m => m.sharedTeach.length > 0 && m.sharedLearn.length > 0)
     .sort((a, b) => b.matchScore - a.matchScore)
     .map(m => ({
       id:          `match-${m.profile.id}`,
@@ -556,3 +556,4 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
   }))
   return []
 }
+
